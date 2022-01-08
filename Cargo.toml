@@ -1,0 +1,20 @@
+[package]
+name = "katflix-server"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "0.2", features = ["macros"] }
+futures = { version = "0.3", default-features = false, features = ["alloc"]}
+foundationdb = { version = "0.5.1", path = "/usr/home/basilisk/foundationdb-rs/foundationdb"}
+warp = "0.2.1"
+console = "0.7.5"
+lazy_static = "1.4.0"
+rand = "0.8.4"
+
+# Serde
+serde = "1.0.101"
+serde_json = "1.0.41"
+serde_derive = "1.0.101"

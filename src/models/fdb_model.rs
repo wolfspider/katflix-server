@@ -1,0 +1,309 @@
+
+use std::borrow::Cow;
+
+use std::thread;
+
+use futures::prelude::*;
+use rand::{rngs::ThreadRng, seq::SliceRandom};
+
+use foundationdb as fdb;
+use foundationdb::tuple::{pack, unpack, Subspace};
+use foundationdb::{Database, FdbError, RangeOption, TransactError, TransactOption, Transaction};
+
+type Result<T> = std::result::Result<T, Error>;
+enum Error {
+    FdbError(FdbError),
+}
+
+impl From<FdbError> for Error {
+    fn from(err: FdbError) -> Self {
+        Error::FdbError(err)
+    }
+}
+
+impl TransactError for Error {
+    fn try_into_fdb_error(self) -> std::result::Result<FdbError, Self> {
+        match self {
+            Error::FdbError(err) => Ok(err),
+        }
+    }
+}
+
+const POSTS: &[&str] = &[
+    "introduction:",
+    "stickies:",
+    "howtos:",
+    "beginner:",
+    "intermediate:",
+    "advanced:",
+    "FAQS:",
+    "contacts:",
+    "help:",
+];
+
+const BODIES: &[&str] = &[
+    "welcome to the forum",
+    "common threads",
+    "how do I do this",
+    "intro code for beginners",
+    "know enough beyond beginner",
+    "I am sharing tips",
+    "frequently asked questions",
+    "useful contacts",
+    "forum development",
+];
+
+//Data Model is 1-to-1 post to body
+
+fn init_posts(trx: &Transaction, all_posts: &[String]) {
+    let post_subspace = Subspace::from("post");
+    for post in all_posts {
+        trx.set(&post_subspace.pack(post), &pack(&100_i64));
+    }
+}
+
+lazy_static! {
+    pub static ref ALL_POSTS: Vec<String> = all_posts();
+}
+
+// TODO: make these tuples?
+fn all_posts() -> Vec<String> {
+    let mut post_names: Vec<String> = Vec::new();
+    for post in POSTS {
+        
+            for body in BODIES {
+                post_names.push(format!("{} {}", post, body));
+            }
+        
+    }
+
+    post_names
+}
+/*
+async fn get_post_trx(trx: &Transaction, post_key: &[u8]) -> String {
+
+    trx.get(&post_key, false)
+    .await
+    .expect("failed to get post");
+
+    let post_value: String = unpack(&post_key).expect("failed to decode post");
+
+    post_value
+}*/
+
+async fn create_post_trx(trx: &Transaction, post: &str, body: &str) -> Result<()> {
+    
+    let post_key = pack(&("post", post, body));
+    if trx
+        .get(&post_key, true)
+        .await
+        .expect("get failed")
+        .is_some()
+    {
+        //println!("{} already taking class: {}", student, class);
+        
+        return Ok(());
+    }
+
+    //println!("{} taking class: {}", student, class);
+    println!("Created Post: {} {}", post, body);
+    trx.set(&post_key, &pack(&""));
+    
+    Ok(())
+}
+
+async fn create_post(db: &Database, post: String, body: String) -> Result<()> {
+    db.transact_boxed_local(
+        (post, body),
+        |trx, (post, body)| create_post_trx(&trx, post, body).boxed_local(),
+        TransactOption::default(),
+    )
+    .await
+}
+
+async fn delete_post_trx(trx: &Transaction, post: &str, body: &str) {
+
+    let post_key = pack(&("post", post, body));
+
+    if trx
+        .get(&post_key, true)
+        .await
+        .expect("get failed")
+        .is_none()
+    {
+        return;
+    }
+
+    println!("Deleting posts...");
+    println!("Deleted Post: {} {}", post, body);
+    trx.clear(&post_key);
+}
+
+async fn delete_post(db: &Database, post: String, body: String) -> Result<()> {
+    db.transact_boxed_local(
+        (post, body),
+        move |trx, (post, body)| delete_post_trx(trx, post, body).map(|_| Ok(())).boxed_local(),
+        fdb::TransactOption::default(),
+    )
+    .await
+}
+
+pub async fn init(db: &Database, all_posts: &[String]) {
+    let trx = db.create_trx().expect("could not create transaction");
+    trx.clear_subspace_range(&"post".into());
+    init_posts(&trx, all_posts);
+
+    trx.commit().await.expect("failed to initialize data");
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Post {
+    Add,
+    Delete,
+    //Update,
+}
+
+async fn perform_posts_op(
+    db: &Database,
+    rng: &mut ThreadRng,
+    post: Post,
+    post_id: &str,
+    all_posts: &[String],
+    my_posts: &mut Vec<String>,
+) -> Result<()> {
+    match post {
+        Post::Add => {
+            let post = all_posts.choose(rng).unwrap();
+            create_post(&db, post_id.to_string(), post.to_string()).await?;
+            my_posts.push(post.to_string());
+        }
+        Post::Delete => {
+            let post = all_posts.choose(rng).unwrap();
+            delete_post(&db, post_id.to_string(), post.to_string()).await?;
+            my_posts.retain(|s| s != post);
+        }
+        /*Mood::Switch => {
+            let old_class = my_classes.choose(rng).unwrap().to_string();
+            let new_class = all_classes.choose(rng).unwrap();
+            switch_classes(
+                &db,
+                student_id.to_string(),
+                old_class.to_string(),
+                new_class.to_string(),
+            )
+            .await?;
+            my_classes.retain(|s| s != &old_class);
+            my_classes.push(new_class.to_string());
+        }*/
+    }
+    Ok(())
+}
+
+async fn posts_op(post_id: usize, num_ops: usize) {
+    let db = Database::new_compat(None)
+        .await
+        .expect("failed to get database");
+
+    let post_id = format!("s{}", post_id);
+    let mut rng = rand::thread_rng();
+
+    let mut available_posts = Cow::Borrowed(&*ALL_POSTS);
+    let mut my_posts = Vec::<String>::new();
+
+    for _ in 0..num_ops {
+        let mut posts = Vec::<Post>::new();
+
+        //  if my_posts.len() > 0 {
+            posts.push(Post::Add);
+            //posts.push(Mood::Update);
+        //}
+
+        if my_posts.len() < 50 {
+            posts.push(Post::Delete);
+        }
+
+        let post = posts.choose(&mut rng).map(|post| *post).unwrap();
+
+        // on errors we recheck for available classes
+        if perform_posts_op(
+            &db,
+            &mut rng,
+            post,
+            &post_id,
+            &available_posts,
+            &mut my_posts,
+        )
+        .await
+        .is_err()
+        {
+            println!("getting available posts");
+            available_posts = Cow::Owned(get_available_posts(&db).await);
+        }
+
+        
+    }
+
+
+}
+
+pub async fn get_available_posts(db: &Database) -> Vec<String> {
+    let trx = db.create_trx().expect("could not create transaction");
+
+    let range = RangeOption::from(&Subspace::from("post"));
+
+    let got_range = trx
+        .get_range(&range, 1_024, false)
+        .await
+        .expect("failed to get posts");
+    let mut available_posts = Vec::<String>::new();
+
+    for key_value in got_range.iter() {
+        let count: i64 = unpack(key_value.value()).expect("failed to decode count");
+
+        if count > 0 {
+            let post: String = unpack(key_value.key()).expect("failed to decode post");
+            available_posts.push(post);
+        }
+    }
+
+    available_posts
+}
+
+pub async fn run_query(db: &Database, poolsize: usize, ops_per_pool: usize) {
+
+    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(poolsize);
+
+    for i in 0..poolsize {
+        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
+        threads.push((
+            i,
+            thread::spawn(move || {
+                futures::executor::block_on(posts_op(i, ops_per_pool));
+            }),
+        ));
+    }
+
+    for (id, thread) in threads {
+        thread.join().expect("failed to join thread");
+
+        let post_id = format!("s{}", id);
+        let post_range = RangeOption::from(&("post", &post_id).into());
+
+        for key_value in db
+            .create_trx()
+            .unwrap()
+            .get_range(&post_range, 1_024, false)
+            .await
+            .expect("post_range failed")
+            .iter()
+        {
+            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
+            assert_eq!(post_id, s);
+
+            println!("has body: {}", body);
+        }
+    }
+
+    println!("Ran {} transactions", poolsize * ops_per_pool);
+
+}

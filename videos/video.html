@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+      <meta charset="utf-8">
+    </head>
+    <body>
+     <style>
+      body {
+        background-image: url('park.jpeg');
+       }
+     </style>
+      <div style="margin: 2rem 2rem 0 2rem;">
+        <video id="video" controls="" playsinline="" src="http://192.168.1.115:8000/videos/outseg.m3u8" width="640" height="360">
+	    </video>
+      </div>
+      <script src="https://cdn.jsdelivr.net/hls.js/latest/hls.min.js"></script>
+      <script>
+    if (Hls.isSupported()) {
+      var video = document.getElementById('video');
+      var hls = new Hls();
+      // bind them together
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+        console.log("video and hls.js are now bound together !");
+        hls.loadSource("http://192.168.1.115:8000/videos/outseg.m3u8");
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+          console.log("manifest loaded, found " + data.levels.length + " quality level");
+        });
+      });
+
+      video.play();
+    }
+  </script>
+    </body>
+</html>
