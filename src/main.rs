@@ -7,7 +7,7 @@ mod models;
 use std::convert::Infallible;
 use std::str::FromStr;
 use std::time::Duration;
-
+use std::sync::Arc;
 use console::Style;
 use warp::Filter;
 use foundationdb as fdb;
@@ -33,8 +33,17 @@ async fn main() {
 
     let vid = warp::path("videos").and(warp::fs::dir("./videos/"));
 
+    let dbinstance = Arc::new(db);
+    //let routes = end.or(vids).or(post_api)
+    let dbinstance = warp::any().map(move || dbinstance.clone());
 
-    //let routes = end.or(vids).or(post_api);
+    let get_posts = 
+     warp::path("fdb")
+    .and(warp::post())
+    .and(dbinstance.clone())
+    .map(|dbinstance| { 
+        get_posts_render(dbinstance);
+    warp::reply()});
 
     let routes = warp::path::param().and_then(sleepy).or(vid);
 
@@ -48,6 +57,10 @@ async fn main() {
 async fn sleepy(Seconds(seconds): Seconds) -> Result<impl warp::Reply, Infallible> {
     tokio::time::delay_for(Duration::from_secs(seconds)).await;
     Ok(format!("I waited {} seconds!", seconds))
+}
+
+fn get_posts_render(dbinstance: Arc<fdb::Database>) {
+
 }
 
 /// A newtype to enforce our maximum allowed seconds.
