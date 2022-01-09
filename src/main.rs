@@ -45,7 +45,8 @@ async fn main() {
         get_posts_render(dbinstance);
     warp::reply()});
 
-    let routes = warp::path::param().and_then(sleepy).or(vid);
+    let routes = warp::path::param()
+    .and_then(sleepy).or(vid).or(get_posts);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 
@@ -60,7 +61,7 @@ async fn sleepy(Seconds(seconds): Seconds) -> Result<impl warp::Reply, Infallibl
 }
 
 fn get_posts_render(dbinstance: Arc<fdb::Database>) {
-
+    futures::executor::block_on(models::fdb_model::run_query(&dbinstance, 10, 10));
 }
 
 /// A newtype to enforce our maximum allowed seconds.
