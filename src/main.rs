@@ -54,7 +54,7 @@ async fn main() {
     
     let vid = warp::path("videos").and(warp::fs::dir("./videos/"));
 
-    let userhash: HashMap<usize, String> = HashMap::new();
+    let userhash: HashMap<usize, tokio::sync::mpsc::UnboundedSender<Message>> = HashMap::new();
     
     // Turn our "state" into a new Filter...
     let dbinstance = Arc::new(db);
@@ -76,6 +76,20 @@ async fn main() {
     .map(|dbinstance| { 
         get_posts_render(dbinstance);
     warp::reply()});
+
+    // GET /chat -> messages stream
+    let chat_recv = warp::path("chat").and(warp::get()).and(users).map(|users| {
+        // reply using server-sent events
+        let stream = user_connected(users);
+        warp::sse::reply(warp::sse::keep_alive().stream(stream))
+    });
+
+    // GET / -> index html
+    let index = warp::path::end().map(|| {
+        warp::http::Response::builder()
+            .header("content-type", "text/html; charset=utf-8")
+            .body(INDEX_HTML)
+    });
 
     let routes = vid.or(get_posts);
 
@@ -113,3 +127,47 @@ fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>
         Message::Reply(reply) => Ok(Event::default().data(reply)),
     })
 }
+
+static INDEX_HTML: &str = r#"
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Warp Chat</title>
+    </head>
+    <body>
+        <h1>warp chat</h1>
+        <div id="chat">
+            <p><em>Connecting...</em></p>
+        </div>
+        <input type="text" id="text" />
+        <button type="button" id="send">Send</button>
+        <script type="text/javascript">
+        var uri = 'http://' + location.host + '/chat';
+        var sse = new EventSource(uri);
+        function message(data) {
+            var line = document.createElement('p');
+            line.innerText = data;
+            chat.appendChild(line);
+        }
+        sse.onopen = function() {
+            chat.innerHTML = "<p><em>Connected!</em></p>";
+        }
+        var user_id;
+        sse.addEventListener("user", function(msg) {
+            user_id = msg.data;
+        });
+        sse.onmessage = function(msg) {
+            message(msg.data);
+        };
+        send.onclick = function() {
+            var msg = text.value;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uri + '/' + user_id, true);
+            xhr.send(msg);
+            text.value = '';
+            message('<You>: ' + msg);
+        };
+        </script>
+    </body>
+</html>
+"#;
