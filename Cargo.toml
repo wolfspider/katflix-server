@@ -6,12 +6,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "0.2", features = ["macros"] }
+tokio = { version = "1.15", features = ["macros"] }
 tokio-stream = "0.1.6"
 futures = { version = "0.3", default-features = false, features = ["alloc"]}
 futures-util = "0.3.1"
 foundationdb = { version = "0.5.1", path = "/usr/home/basilisk/foundationdb-rs/foundationdb"}
-warp = "0.2.1"
+warp = "0.3.2"
 console = "0.7.5"
 lazy_static = "1.4.0"
 rand = "0.8.4"

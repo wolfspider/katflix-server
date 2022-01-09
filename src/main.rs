@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use tokio::sync::mpsc;
+
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
 use warp::Filter;
@@ -28,14 +28,8 @@ enum Message {
 struct NotUtf8;
 impl warp::reject::Reject for NotUtf8 {}
 
-/// Our state of currently connected users.
-///
-/// - Key is their id
-/// - Value is a sender of `Message`
-type Users = Arc<Mutex<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
 
-
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     
     let target: String = "0.0.0.0:8000".parse().unwrap();
