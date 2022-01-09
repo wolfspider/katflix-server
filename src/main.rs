@@ -91,7 +91,7 @@ async fn main() {
             .body(INDEX_HTML)
     });
 
-    let routes = vid.or(get_posts);
+    let routes = index.or(chat_recv).or(vid).or(get_posts);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 
