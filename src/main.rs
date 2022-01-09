@@ -110,11 +110,17 @@ async fn main() {
 }
 
 fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let new_msg = format!("<User#{}>: {}", my_id, msg);
+    let mut new_msg = format!("<User#{}>: {}", my_id, msg);
     
     futures::executor::block_on(models::fdb_model::run_query(&dbinstance, 10, 10));
 
-     // New message from this user, send it to everyone else (except same uid)...
+    let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance, 10, 10));
+
+    for fdbstr in vecstr {
+        println!("Received post: {}", fdbstr);
+        new_msg.push_str(&fdbstr);
+    }
+    // New message from this user, send it to everyone else (except same uid)...
     //
     // We use `retain` instead of a for loop so that we can reap any user that
     // appears to have disconnected.

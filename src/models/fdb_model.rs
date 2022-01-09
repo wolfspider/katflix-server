@@ -307,3 +307,45 @@ pub async fn run_query(db: &Database, poolsize: usize, ops_per_pool: usize) {
     println!("Ran {} transactions", poolsize * ops_per_pool);
 
 }
+
+pub async fn run_query_posts(db: &Database, poolsize: usize, ops_per_pool: usize) -> Vec<String>{
+
+    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(poolsize);
+
+    for i in 0..poolsize {
+        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
+        threads.push((
+            i,
+            thread::spawn(move || {
+                futures::executor::block_on(posts_op(i, ops_per_pool));
+            }),
+        ));
+    }
+
+    let mut received_posts = Vec::<String>::new();
+
+    for (id, thread) in threads {
+        thread.join().expect("failed to join thread");
+
+        let post_id = format!("s{}", id);
+        let post_range = RangeOption::from(&("post", &post_id).into());
+
+        for key_value in db
+            .create_trx()
+            .unwrap()
+            .get_range(&post_range, 1_024, false)
+            .await
+            .expect("post_range failed")
+            .iter()
+        {
+            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
+            assert_eq!(post_id, s);
+
+            //println!("has body: {}", body);
+            received_posts.push(body);
+        }
+    }
+
+    //println!("Ran {} transactions", poolsize * ops_per_pool);
+    received_posts
+}
