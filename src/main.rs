@@ -2,15 +2,38 @@
 extern crate lazy_static;
 
 mod models;
-
+use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
 use warp::Filter;
 use foundationdb as fdb;
+
+/// global unique user id counter
+static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
+
+/// Message variants
+#[derive(Debug)]
+enum Message {
+    UserId(usize),
+    Reply(String),
+}
+
+#[derive(Debug)]
+struct NotUtf8;
+impl warp::reject::Reject for NotUtf8 {}
+
+/// Our state of currently connected users.
+///
+/// - Key is their id
+/// - Value is a sender of `Message`
+type Users = Arc<Mutex<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
+
 
 #[tokio::main]
 async fn main() {

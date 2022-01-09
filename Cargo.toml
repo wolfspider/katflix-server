@@ -7,7 +7,9 @@ edition = "2018"
 
 [dependencies]
 tokio = { version = "0.2", features = ["macros"] }
+tokio-stream = "0.1.6"
 futures = { version = "0.3", default-features = false, features = ["alloc"]}
+futures-util = "0.3.1"
 foundationdb = { version = "0.5.1", path = "/usr/home/basilisk/foundationdb-rs/foundationdb"}
 warp = "0.2.1"
 console = "0.7.5"

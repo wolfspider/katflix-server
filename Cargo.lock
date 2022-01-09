@@ -445,7 +445,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio",
+ "tokio 0.2.25",
  "tokio-util",
  "tracing",
  "tracing-futures",
@@ -557,7 +557,7 @@ dependencies = [
  "itoa 0.4.8",
  "pin-project 1.0.10",
  "socket2",
- "tokio",
+ "tokio 0.2.25",
  "tower-service",
  "tracing",
  "want",
@@ -630,12 +630,14 @@ dependencies = [
  "console",
  "foundationdb",
  "futures",
+ "futures-util",
  "lazy_static",
  "rand 0.8.4",
  "serde",
  "serde_derive",
  "serde_json",
- "tokio",
+ "tokio 0.2.25",
+ "tokio-stream",
  "warp",
 ]
 
@@ -1260,6 +1262,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbbf1c778ec206785635ce8ad57fe52b3009ae9e0c9f574a728f3049d3e55838"
+dependencies = [
+ "pin-project-lite 0.2.8",
+]
+
+[[package]]
 name = "tokio-macros"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1271,6 +1282,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-stream"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50145484efff8818b5ccd256697f36863f587da82cf8b409c53adf1e840798e3"
+dependencies = [
+ "futures-core",
+ "pin-project-lite 0.2.8",
+ "tokio 1.15.0",
+]
+
+[[package]]
 name = "tokio-tungstenite"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1279,7 +1301,7 @@ dependencies = [
  "futures-util",
  "log",
  "pin-project 0.4.29",
- "tokio",
+ "tokio 0.2.25",
  "tungstenite",
 ]
 
@@ -1294,7 +1316,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.1.12",
- "tokio",
+ "tokio 0.2.25",
 ]
 
 [[package]]
@@ -1482,7 +1504,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "tokio",
+ "tokio 0.2.25",
  "tokio-tungstenite",
  "tower-service",
  "tracing",
