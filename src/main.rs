@@ -8,14 +8,20 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
-
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
-use warp::Filter;
+use warp::{sse::Event, Filter};
 use foundationdb as fdb;
 
 /// global unique user id counter
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
+
+/// Our state of currently connected users.
+///
+/// - Key is their id
+/// - Value is a sender of `Message`
+type Users = Arc<Mutex<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
 
 /// Message variants
 #[derive(Debug)]
@@ -81,4 +87,29 @@ async fn main() {
 
 fn get_posts_render(dbinstance: Arc<fdb::Database>)  {
     futures::executor::block_on(models::fdb_model::run_query(&dbinstance, 10, 10));
+}
+
+fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>> + Send + 'static {
+    // Use a counter to assign a new unique ID for this user.
+    let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
+
+    eprintln!("new chat user: {}", my_id);
+
+    // Use an unbounded channel to handle buffering and flushing of messages
+    // to the event source...
+    let (tx, rx) = mpsc::unbounded_channel();
+    let rx = UnboundedReceiverStream::new(rx);
+
+    tx.send(Message::UserId(my_id))
+        // rx is right above, so this cannot fail
+        .unwrap();
+
+    // Save the sender in our list of connected users.
+    users.lock().unwrap().insert(my_id, tx);
+
+    // Convert messages into Server-Sent Events and return resulting stream.
+    rx.map(|msg| match msg {
+        Message::UserId(my_id) => Ok(Event::default().event("user").data(my_id.to_string())),
+        Message::Reply(reply) => Ok(Event::default().data(reply)),
+    })
 }
