@@ -70,11 +70,21 @@ async fn main() {
     let dbinstance = warp::any().map(move || dbinstance.clone());
 
     let get_posts = 
-     warp::path("fdb")
+     warp::path("chat")
     .and(warp::post())
+    .and(warp::path::param::<usize>())
+    .and(warp::body::content_length_limit(500))
+    .and(
+        warp::body::bytes().and_then(|body: bytes::Bytes| async move {
+            std::str::from_utf8(&body)
+                .map(String::from)
+                .map_err(|_e| warp::reject::custom(NotUtf8))
+            }),
+        )
+    .and(users.clone())
     .and(dbinstance.clone())
-    .map(|dbinstance| { 
-        get_posts_render(dbinstance);
+    .map(|my_id, msg, users, dbinstance| { 
+        get_posts_render(my_id, msg, &users, dbinstance);
     warp::reply()});
 
     // GET /chat -> messages stream
@@ -99,8 +109,24 @@ async fn main() {
     drop(_guard);
 }
 
-fn get_posts_render(dbinstance: Arc<fdb::Database>)  {
+fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
+    let new_msg = format!("<User#{}>: {}", my_id, msg);
+    
     futures::executor::block_on(models::fdb_model::run_query(&dbinstance, 10, 10));
+
+     // New message from this user, send it to everyone else (except same uid)...
+    //
+    // We use `retain` instead of a for loop so that we can reap any user that
+    // appears to have disconnected.
+    users.lock().unwrap().retain(|uid, tx| {
+        if my_id == *uid {
+            // don't send to same user, but do retain
+            true
+        } else {
+            // If not `is_ok`, the SSE stream is gone, and so don't retain
+            tx.send(Message::Reply(new_msg.clone())).is_ok()
+        }
+    });
 }
 
 fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>> + Send + 'static {
