@@ -29,7 +29,7 @@ impl TransactError for Error {
     }
 }
 
-const POOLSZ: usize = 10;
+const POOLSZ: usize = 1;
 
 const WORKSZ: usize = 10;
 
@@ -56,6 +56,50 @@ const BODIES: &[&str] = &[
     "useful contacts",
     "forum development",
 ];
+
+pub static INDEX_HTML: &str = r#"
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Warp Chat</title>
+    </head>
+    <body>
+        <h1>warp chat</h1>
+        <div id="chat">
+            <p><em>Connecting...</em></p>
+        </div>
+        <input type="text" id="text" />
+        <button type="button" id="send">Send</button>
+        <script type="text/javascript">
+        var uri = 'http://' + location.host + '/chat';
+        var sse = new EventSource(uri);
+        function message(data) {
+            var line = document.createElement('p');
+            line.innerText = data;
+            chat.appendChild(line);
+        }
+        sse.onopen = function() {
+            chat.innerHTML = "<p><em>Connected!</em></p>";
+        }
+        var user_id;
+        sse.addEventListener("user", function(msg) {
+            user_id = msg.data;
+        });
+        sse.onmessage = function(msg) {
+            message(msg.data);
+        };
+        send.onclick = function() {
+            var msg = text.value;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uri + '/' + user_id, true);
+            xhr.send(msg);
+            text.value = '';
+            message('<You>: ' + msg);
+        };
+        </script>
+    </body>
+</html>
+"#;
 
 //Data Model is 1-to-1 post to body
 

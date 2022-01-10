@@ -97,7 +97,7 @@ async fn main() {
     let index = warp::path::end().map(|| {
         warp::http::Response::builder()
             .header("content-type", "text/html; charset=utf-8")
-            .body(INDEX_HTML)
+            .body(models::fdb_model::INDEX_HTML)
     });
 
     let routes = index.or(chat_recv).or(vid).or(get_posts);
@@ -112,7 +112,7 @@ fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
     let mut new_msg = format!("<User#{}>: {}\n", my_id, msg);
     
     let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance));
-
+    
     for fdbstr in vecstr {
         let compstr = format!(" {} \n", &fdbstr);
         new_msg.push_str(&compstr);
@@ -158,46 +158,4 @@ fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>
     })
 }
 
-static INDEX_HTML: &str = r#"
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Warp Chat</title>
-    </head>
-    <body>
-        <h1>warp chat</h1>
-        <div id="chat">
-            <p><em>Connecting...</em></p>
-        </div>
-        <input type="text" id="text" />
-        <button type="button" id="send">Send</button>
-        <script type="text/javascript">
-        var uri = 'http://' + location.host + '/chat';
-        var sse = new EventSource(uri);
-        function message(data) {
-            var line = document.createElement('p');
-            line.innerText = data;
-            chat.appendChild(line);
-        }
-        sse.onopen = function() {
-            chat.innerHTML = "<p><em>Connected!</em></p>";
-        }
-        var user_id;
-        sse.addEventListener("user", function(msg) {
-            user_id = msg.data;
-        });
-        sse.onmessage = function(msg) {
-            message(msg.data);
-        };
-        send.onclick = function() {
-            var msg = text.value;
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", uri + '/' + user_id, true);
-            xhr.send(msg);
-            text.value = '';
-            message('<You>: ' + msg);
-        };
-        </script>
-    </body>
-</html>
-"#;
+
