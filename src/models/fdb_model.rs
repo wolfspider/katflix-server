@@ -69,7 +69,9 @@ pub static INDEX_HTML: &str = r#"
             <p><em>Connecting...</em></p>
         </div>
         <input type="text" id="text" />
-        <button type="button" id="send">Send</button>
+        <button type="button" id="send">Add</button>
+        <button type="button" id=init">Init</button>
+        <button type="button" id="commit">Commit</button>
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
         var sse = new EventSource(uri);
