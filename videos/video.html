@@ -10,7 +10,7 @@
        }
      </style>
       <div style="margin: 2rem 2rem 0 2rem;">
-        <video id="video" controls="" playsinline="" src="http://192.168.1.115:8000/videos/outseg.m3u8" width="640" height="360">
+        <video id="video" controls="" playsinline="" src="outseg.m3u8" width="640" height="360">
 	    </video>
       </div>
       <script src="https://cdn.jsdelivr.net/hls.js/latest/hls.min.js"></script>
@@ -22,7 +22,7 @@
       hls.attachMedia(video);
       hls.on(Hls.Events.MEDIA_ATTACHED, function () {
         console.log("video and hls.js are now bound together !");
-        hls.loadSource("http://192.168.1.115:8000/videos/outseg.m3u8");
+        hls.loadSource("outseg.m3u8");
         hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
           console.log("manifest loaded, found " + data.levels.length + " quality level");
         });

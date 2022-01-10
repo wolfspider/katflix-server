@@ -29,6 +29,10 @@ impl TransactError for Error {
     }
 }
 
+const POOLSZ: usize = 10;
+
+const WORKSZ: usize = 10;
+
 const POSTS: &[&str] = &[
     "introduction:",
     "stickies:",
@@ -213,12 +217,10 @@ async fn posts_op(post_id: usize, num_ops: usize) {
     for _ in 0..num_ops {
         let mut posts = Vec::<Post>::new();
 
-        //  if my_posts.len() > 0 {
-            posts.push(Post::Add);
-            //posts.push(Mood::Update);
+        //if my_posts.len() < 50 {
+        posts.push(Post::Add);
         //}
-
-        if my_posts.len() < 50 {
+        if my_posts.len() < 20 {
             posts.push(Post::Delete);
         }
 
@@ -308,16 +310,16 @@ pub async fn run_query(db: &Database, poolsize: usize, ops_per_pool: usize) {
 
 }
 
-pub async fn run_query_posts(db: &Database, poolsize: usize, ops_per_pool: usize) -> Vec<String>{
+pub async fn run_query_posts(db: &Database) -> Vec<String>{
 
-    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(poolsize);
+    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
 
-    for i in 0..poolsize {
+    for i in 0..POOLSZ {
         // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
         threads.push((
             i,
             thread::spawn(move || {
-                futures::executor::block_on(posts_op(i, ops_per_pool));
+                futures::executor::block_on(posts_op(i, WORKSZ));
             }),
         ));
     }
