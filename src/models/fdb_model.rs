@@ -264,6 +264,7 @@ async fn perform_posts_op(
         Post::Commit => {
             let post = all_posts.choose(rng).unwrap();
             commit_post(&db, post_id.to_string(), post.to_string()).await?;
+            my_posts.push(post.to_string());
         }
         /*Mood::Switch => {
             let old_class = my_classes.choose(rng).unwrap().to_string();
