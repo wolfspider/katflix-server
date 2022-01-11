@@ -158,7 +158,26 @@ async fn create_post_trx(trx: &Transaction, post: &str, body: &str) -> Result<()
     //println!("{} taking class: {}", student, class);
     println!("Created Post: {} {}", post, body);
     trx.set(&post_key, &pack(&""));
-    
+    Ok(())
+}
+
+async fn commit_post_trx(trx: &Transaction, post: &str, body: &str, db: &Database) -> Result<()> {
+    let post_key = pack(&("post", post, body));
+    if trx
+        .get(&post_key, true)
+        .await
+        .expect("get failed")
+        .is_some()
+    {
+        //println!("{} already taking class: {}", student, class);
+        
+        return Ok(());
+    }
+
+    let ntrx = db.create_trx().expect("could not create transaction");
+
+    println!("Committing Post: {} {}", post, body);
+    ntrx.commit().await.expect("failed to commit post data");
     Ok(())
 }
 
@@ -166,6 +185,15 @@ async fn create_post(db: &Database, post: String, body: String) -> Result<()> {
     db.transact_boxed_local(
         (post, body),
         |trx, (post, body)| create_post_trx(&trx, post, body).boxed_local(),
+        TransactOption::default(),
+    )
+    .await   
+}
+
+async fn commit_post(db: &Database, post: String, body: String) -> Result<()> {
+    db.transact_boxed_local(
+        (post, body, db),
+        |trx, (post, body, db)| commit_post_trx(&trx, post, body, db).boxed_local(),
         TransactOption::default(),
     )
     .await
@@ -210,6 +238,7 @@ pub async fn init(db: &Database, all_posts: &[String]) {
 enum Post {
     Add,
     Delete,
+    Commit,
     //Update,
 }
 
@@ -231,6 +260,10 @@ async fn perform_posts_op(
             let post = all_posts.choose(rng).unwrap();
             delete_post(&db, post_id.to_string(), post.to_string()).await?;
             my_posts.retain(|s| s != post);
+        }
+        Post::Commit => {
+            let post = all_posts.choose(rng).unwrap();
+            commit_post(&db, post_id.to_string(), post.to_string()).await?;
         }
         /*Mood::Switch => {
             let old_class = my_classes.choose(rng).unwrap().to_string();
@@ -267,6 +300,9 @@ async fn posts_op(post_id: usize, num_ops: usize) {
 
         //Add posts
         posts.push(Post::Add);
+
+        //Commit post
+        //posts.push(Post::Commit);
         
         //Choose posts from random collection
         //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
