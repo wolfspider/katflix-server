@@ -175,7 +175,7 @@ async fn commit_post_trx(trx: &Transaction, post: &str, body: &str, db: &Databas
     }
 
     let ntrx = db.create_trx().expect("could not create transaction");
-
+    ntrx.set(post.as_bytes(), body.as_bytes());
     println!("Committing Post: {} {}", post, body);
     ntrx.commit().await.expect("failed to commit post data");
     Ok(())
@@ -302,7 +302,7 @@ async fn posts_op(post_id: usize, num_ops: usize) {
         posts.push(Post::Add);
 
         //Commit post
-        //posts.push(Post::Commit);
+        posts.push(Post::Commit);
         
         //Choose posts from random collection
         //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
