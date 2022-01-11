@@ -63,6 +63,16 @@ pub static INDEX_HTML: &str = r#"
     <head>
         <title>Warp Chat</title>
     </head>
+    <style>
+    .divstyle
+    {
+        border-style:solid;
+        border-color:black;
+        border-width:1px;
+        font-size: 15px;
+        width: 15%
+    }
+    </style>
     <body>
         <h1>warp chat</h1>
         <div id="chat">
@@ -77,7 +87,7 @@ pub static INDEX_HTML: &str = r#"
         var sse = new EventSource(uri);
         function message(data) {
             var line = document.createElement('p');
-            line.innerText = data;
+            line.innerHTML = "<div class='divstyle'>"+data+"</div>";
             chat.appendChild(line);
         }
         sse.onopen = function() {
@@ -303,7 +313,7 @@ async fn posts_op(post_id: usize, num_ops: usize) {
         posts.push(Post::Add);
 
         //Commit post
-        posts.push(Post::Commit);
+        //posts.push(Post::Commit);
         
         //Choose posts from random collection
         //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
