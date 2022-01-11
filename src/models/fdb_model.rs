@@ -255,6 +255,8 @@ async fn posts_op(post_id: usize, num_ops: usize) {
         .expect("failed to get database");
 
     let post_id = format!("s{}", post_id);
+
+    //1 worker will pick at random 1-10 posts
     let mut rng = rand::thread_rng();
 
     let mut available_posts = Cow::Borrowed(&*ALL_POSTS);
@@ -263,16 +265,15 @@ async fn posts_op(post_id: usize, num_ops: usize) {
     for _ in 0..num_ops {
         let mut posts = Vec::<Post>::new();
 
-        //if my_posts.len() < 50 {
+        //Add posts
         posts.push(Post::Add);
-        //}
-        if my_posts.len() < 20 {
-            posts.push(Post::Delete);
-        }
+        
+        //Choose posts from random collection
+        //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
 
-        let post = posts.choose(&mut rng).map(|post| *post).unwrap();
+        let post = posts.iter().last().map(|post| *post).unwrap();
 
-        // on errors we recheck for available classes
+        // on errors we recheck for available posts
         if perform_posts_op(
             &db,
             &mut rng,
