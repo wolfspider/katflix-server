@@ -109,7 +109,7 @@ async fn main() {
 }
 
 fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let mut new_msg = format!("<User#{}>: {},", my_id, msg);
+    let mut new_msg = format!("User#{}: {},", my_id, msg);
     
     let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance));
     

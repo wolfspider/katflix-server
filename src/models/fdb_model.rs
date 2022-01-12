@@ -29,9 +29,9 @@ impl TransactError for Error {
     }
 }
 
-const POOLSZ: usize = 1;
+const POOLSZ: usize = 10;
 
-const WORKSZ: usize = 10;
+const WORKSZ: usize = 1;
 
 const POSTS: &[&str] = &[
     "introduction:",
@@ -443,7 +443,8 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
             assert_eq!(post_id, s);
 
             //println!("has body: {}", body);
-            received_posts.push(body);
+            let postcomp = format!("{} :: {}", post_id, body);
+            received_posts.push(postcomp);
         }
     }
 
