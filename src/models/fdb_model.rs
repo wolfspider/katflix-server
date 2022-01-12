@@ -461,11 +461,15 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
 
 pub async fn render_posts(db: &Database) -> Vec<String>{
 
+    let threads: Vec<thread::JoinHandle<()>> = Vec::with_capacity(POOLSZ);
+    
     let mut received_posts = Vec::<String>::new();
-
+for thread in threads {
+    thread.join().expect("failed to join thread");
+    
     let post_id = format!("s");
-    let post_end = format!("t");
-    let post_range = RangeOption::from(&(&post_id, &post_end).into());
+    let post_end = format!("s");
+    let post_range = RangeOption::from(&("post", &post_end).into());
 
     for key_value in db
         .create_trx()
@@ -482,7 +486,7 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
             let postcomp = format!("{}::{}", post_id, body);
             received_posts.push(postcomp);
         }
-    //}
+    }
 
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
