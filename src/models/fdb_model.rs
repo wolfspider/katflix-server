@@ -90,7 +90,10 @@ pub static INDEX_HTML: &str = r#"
             for(var i = 0; i < data.split(',').length - 1; i++) 
             {
                 console.log(data.split(',')[i])
-                line.innerHTML += "<div class='divstyle'>"+data.split(',')[i]+"</div>";
+                var msgstr = data.split(',')[i];
+                var msgidx = msgstr.split('::')[0];
+                var msgstrtrim = msgstr.split('::')[1];
+                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'>"+msgstrtrim+"</div>";
                 chat.appendChild(line);
             }            
             
@@ -443,7 +446,7 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
             assert_eq!(post_id, s);
 
             //println!("has body: {}", body);
-            let postcomp = format!("{} :: {}", post_id, body);
+            let postcomp = format!("{}::{}", post_id, body);
             received_posts.push(postcomp);
         }
     }
