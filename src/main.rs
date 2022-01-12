@@ -123,13 +123,14 @@ fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
     // We use `retain` instead of a for loop so that we can reap any user that
     // appears to have disconnected.
     users.lock().unwrap().retain(|uid, tx| {
+        /*
         if my_id == *uid {
             // don't send to same user, but do retain
             true
-        } else {
+        } else {*/
             // If not `is_ok`, the SSE stream is gone, and so don't retain
             tx.send(Message::Reply(new_msg.clone())).is_ok()
-        }
+        //}
     });
 }
 

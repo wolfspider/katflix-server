@@ -88,14 +88,13 @@ pub static INDEX_HTML: &str = r#"
             var line = document.createElement('p');
             for(var i = 0; i < data.split(',').length - 1; i++) 
             {
-                console.log(data.split(',')[i])
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
                 var msgstrtrim = msgstr.split('::')[1];
                 line.innerHTML += "<div id='"+msgidx+"' class='divstyle'>"+"("+msgidx+") "+msgstrtrim+"</div>";
                 if(i > 0)
                 {
-                    line.innerHTML += "<div class='divstyle'><button>Update</button></div>";
+                    line.innerHTML += "<div class='divstyle'><button>Update</button>&nbsp&nbsp<input type='updtext' id='updtext' /></div>";
                     line.innerHTML += "<div class='divstyle'><button>Delete</button></div>";
                     line.innerHTML += "<div class='divstyle'><button>Commit</button></div>";
                 }
