@@ -2,6 +2,7 @@
 use std::borrow::Cow;
 
 use std::thread;
+use std::str;
 
 use futures::prelude::*;
 use rand::{rngs::ThreadRng, seq::SliceRandom};
@@ -81,8 +82,10 @@ pub static INDEX_HTML: &str = r#"
         </div>
         <input type="text" id="text" />
         <button type="button" id="send">Add</button>
+        <button type="button" id="status">Status</button>
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
+        var uristat = 'http://' + location.host + '/status';
         var sse = new EventSource(uri);
         function message(data) {
             var line = document.createElement('p');
@@ -116,6 +119,14 @@ pub static INDEX_HTML: &str = r#"
             var msg = text.value;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uri + '/' + user_id, true);
+            xhr.send(msg);
+            text.value = '';
+            message('<You>: ' + msg);
+        };
+        status.onclick = function() {
+            var msg = text.value;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uristat, true);
             xhr.send(msg);
             text.value = '';
             message('<You>: ' + msg);
@@ -156,13 +167,13 @@ async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -
 
     let key = post_key.as_bytes();
     
-    trx.get(&key, false)
+    let pval = trx.get(&key, false)
     .await
     .expect("failed to get post");
 
-    let post_value: String = unpack(&key).expect("failed to decode post");
+    let post_value = pval.unwrap();
 
-    post_val = &post_value;
+    post_val = str::from_utf8(&post_value.as_ref()).unwrap();
 
     Ok(())
 }
@@ -529,19 +540,33 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
 
 pub async fn render_posts(db: &Database) -> Vec<String>{
 
-    let mut received_posts = Vec::<String>::new();
-     
-    let post_id = format!("a");
-    let post_end = format!("s0");
-    let post_range = RangeOption::from(&("post", &post_end).into());
+    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
 
-    for key_value in db
-        .create_trx()
-        .unwrap()
-        .get_range(&post_range, 1_024, false)
-        .await
-        .expect("post_range failed")
-        .iter()
+    for i in 0..POOLSZ {
+        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
+        threads.push((
+            i,
+            thread::spawn(move || {
+                futures::executor::block_on(posts_op_get(i, WORKSZ));
+            }),
+        ));
+    }
+
+    let mut received_posts = Vec::<String>::new();
+
+    for (id, thread) in threads {
+        thread.join().expect("failed to join thread");
+
+        let post_id = format!("s{}", id);
+        let post_range = RangeOption::from(&("post", &post_id).into());
+
+        for key_value in db
+            .create_trx()
+            .unwrap()
+            .get_range(&post_range, 1_024, false)
+            .await
+            .expect("post_range failed")
+            .iter()
         {
             let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
             assert_eq!(post_id, s);
@@ -550,6 +575,7 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
             let postcomp = format!("{}::{}", post_id, body);
             received_posts.push(postcomp);
         }
+    }
 
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
