@@ -151,17 +151,21 @@ fn all_posts() -> Vec<String> {
 
     post_names
 }
-/*
-async fn get_post_trx(trx: &Transaction, post_key: &[u8]) -> String {
 
-    trx.get(&post_key, false)
+async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -> Result<()> {
+
+    let key = post_key.as_bytes();
+    
+    trx.get(&key, false)
     .await
     .expect("failed to get post");
 
-    let post_value: String = unpack(&post_key).expect("failed to decode post");
+    let post_value: String = unpack(&key).expect("failed to decode post");
 
-    post_value
-}*/
+    post_val = &post_value;
+
+    Ok(())
+}
 
 async fn create_post_trx(trx: &Transaction, post: &str, body: &str) -> Result<()> {
     
@@ -210,6 +214,15 @@ async fn create_post(db: &Database, post: String, body: String) -> Result<()> {
         TransactOption::default(),
     )
     .await   
+}
+
+async fn get_post(db: &Database, post: String, body: String) -> Result<()> {
+    db.transact_boxed_local(
+        (post, body),
+        |trx, (post, body)| get_post_trx(&trx, post.to_string(), body).boxed_local(),
+        TransactOption::default(),
+    )
+    .await 
 }
 
 async fn commit_post(db: &Database, post: String, body: String) -> Result<()> {
@@ -261,6 +274,7 @@ enum Post {
     Add,
     Delete,
     Commit,
+    Get,
     //Update,
 }
 
@@ -287,6 +301,11 @@ async fn perform_posts_op(
             let post = all_posts.choose(rng).unwrap();
             commit_post(&db, post_id.to_string(), post.to_string()).await?;
             my_posts.push(post.to_string());
+        }
+        Post::Get => {
+            let post = all_posts.choose(rng).unwrap();
+            get_post(&db, post_id.to_string(), post.to_string()).await?;
+            my_posts.push(post.to_string())
         }
         /*Mood::Switch => {
             let old_class = my_classes.choose(rng).unwrap().to_string();
@@ -323,6 +342,55 @@ async fn posts_op(post_id: usize, num_ops: usize) {
 
         //Add posts
         posts.push(Post::Add);
+
+        //Commit post
+        //posts.push(Post::Commit);
+        
+        //Choose posts from random collection
+        //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
+
+        let post = posts.iter().last().map(|post| *post).unwrap();
+
+        // on errors we recheck for available posts
+        if perform_posts_op(
+            &db,
+            &mut rng,
+            post,
+            &post_id,
+            &available_posts,
+            &mut my_posts,
+        )
+        .await
+        .is_err()
+        {
+            println!("getting available posts");
+            available_posts = Cow::Owned(get_available_posts(&db).await);
+        }
+
+        
+    }
+
+
+}
+
+async fn posts_op_get(post_id: usize, num_ops: usize) {
+    let db = Database::new_compat(None)
+        .await
+        .expect("failed to get database");
+
+    let post_id = format!("s{}", post_id);
+
+    //1 worker will pick at random 1-10 posts
+    let mut rng = rand::thread_rng();
+
+    let mut available_posts = Cow::Borrowed(&*ALL_POSTS);
+    let mut my_posts = Vec::<String>::new();
+
+    for _ in 0..num_ops {
+        let mut posts = Vec::<Post>::new();
+
+        //Get posts
+        posts.push(Post::Get);
 
         //Commit post
         //posts.push(Post::Commit);
@@ -461,14 +529,10 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
 
 pub async fn render_posts(db: &Database) -> Vec<String>{
 
-    let threads: Vec<thread::JoinHandle<()>> = Vec::with_capacity(POOLSZ);
-    
     let mut received_posts = Vec::<String>::new();
-for thread in threads {
-    thread.join().expect("failed to join thread");
-    
-    let post_id = format!("s");
-    let post_end = format!("s");
+     
+    let post_id = format!("a");
+    let post_end = format!("s0");
     let post_range = RangeOption::from(&("post", &post_end).into());
 
     for key_value in db
@@ -486,7 +550,6 @@ for thread in threads {
             let postcomp = format!("{}::{}", post_id, body);
             received_posts.push(postcomp);
         }
-    }
 
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
