@@ -61,7 +61,7 @@ pub static INDEX_HTML: &str = r#"
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Warp Chat</title>
+        <title>Warp SSE FDB Example</title>
     </head>
     <style>
     .divstyle
@@ -75,7 +75,7 @@ pub static INDEX_HTML: &str = r#"
     }
     </style>
     <body>
-        <h1>warp chat</h1>
+        <h1>Warp SSE FDB Example</h1>
         <div id="chat">
             <p><em>Connecting...</em></p>
         </div>
