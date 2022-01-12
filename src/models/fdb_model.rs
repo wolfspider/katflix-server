@@ -70,7 +70,8 @@ pub static INDEX_HTML: &str = r#"
         border-color:black;
         border-width:1px;
         font-size: 15px;
-        width: 15%
+        width: 15%;
+        align: center;
     }
     </style>
     <body>
@@ -80,8 +81,6 @@ pub static INDEX_HTML: &str = r#"
         </div>
         <input type="text" id="text" />
         <button type="button" id="send">Add</button>
-        <button type="button" id=init">Init</button>
-        <button type="button" id="commit">Commit</button>
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
         var sse = new EventSource(uri);
@@ -93,7 +92,13 @@ pub static INDEX_HTML: &str = r#"
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
                 var msgstrtrim = msgstr.split('::')[1];
-                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'>"+msgstrtrim+"</div>";
+                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'>"+"("+msgidx+") "+msgstrtrim+"</div>";
+                if(i > 0)
+                {
+                    line.innerHTML += "<div class='divstyle'><button>Update</button></div>";
+                    line.innerHTML += "<div class='divstyle'><button>Delete</button></div>";
+                    line.innerHTML += "<div class='divstyle'><button>Commit</button></div>";
+                }
                 chat.appendChild(line);
             }            
             
