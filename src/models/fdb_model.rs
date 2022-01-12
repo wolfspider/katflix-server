@@ -458,3 +458,32 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
 }
+
+pub async fn render_posts(db: &Database) -> Vec<String>{
+
+    let mut received_posts = Vec::<String>::new();
+
+    let post_id = format!("s");
+    let post_end = format!("t");
+    let post_range = RangeOption::from(&(&post_id, &post_end).into());
+
+    for key_value in db
+        .create_trx()
+        .unwrap()
+        .get_range(&post_range, 1_024, false)
+        .await
+        .expect("post_range failed")
+        .iter()
+        {
+            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
+            assert_eq!(post_id, s);
+
+            //println!("has body: {}", body);
+            let postcomp = format!("{}::{}", post_id, body);
+            received_posts.push(postcomp);
+        }
+    //}
+
+    //println!("Ran {} transactions", poolsize * ops_per_pool);
+    received_posts
+}
