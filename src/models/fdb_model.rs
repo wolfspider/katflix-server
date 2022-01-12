@@ -87,8 +87,13 @@ pub static INDEX_HTML: &str = r#"
         var sse = new EventSource(uri);
         function message(data) {
             var line = document.createElement('p');
-            line.innerHTML = "<div class='divstyle'>"+data+"</div>";
-            chat.appendChild(line);
+            for(var i = 0; i < data.split(',').length - 1; i++) 
+            {
+                console.log(data.split(',')[i])
+                line.innerHTML += "<div class='divstyle'>"+data.split(',')[i]+"</div>";
+                chat.appendChild(line);
+            }            
+            
         }
         sse.onopen = function() {
             chat.innerHTML = "<p><em>Connected!</em></p>";
