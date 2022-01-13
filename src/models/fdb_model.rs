@@ -163,7 +163,7 @@ fn all_posts() -> Vec<String> {
     post_names
 }
 
-async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -> Result<()> {
+async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -> Result<String> {
 
     let key = post_key.as_bytes();
     
@@ -175,7 +175,7 @@ async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -
 
     post_val = str::from_utf8(&post_value.as_ref()).unwrap();
 
-    Ok(())
+    Ok(String::from(post_val))
 }
 
 async fn create_post_trx(trx: &Transaction, post: &str, body: &str) -> Result<()> {
@@ -227,13 +227,11 @@ async fn create_post(db: &Database, post: String, body: String) -> Result<()> {
     .await   
 }
 
-async fn get_post(db: &Database, post: String, body: String) -> Result<()> {
-    db.transact_boxed_local(
-        (post, body),
-        |trx, (post, body)| get_post_trx(&trx, post.to_string(), body).boxed_local(),
-        TransactOption::default(),
-    )
-    .await 
+async fn get_post(db: &Database, post: String, mut post_val: &str) -> Result<String> {
+   
+    let trx = db.create_trx().expect("could not create transaction");
+    let outstr = get_post_trx(&trx, post.to_string(), post_val).await;
+    outstr
 }
 
 async fn commit_post(db: &Database, post: String, body: String) -> Result<()> {
@@ -314,8 +312,10 @@ async fn perform_posts_op(
             my_posts.push(post.to_string());
         }
         Post::Get => {
-            let post = all_posts.choose(rng).unwrap();
-            get_post(&db, post_id.to_string(), post.to_string()).await?;
+            
+            let mut postval = "";
+            let pvout = get_post(&db, post_id.to_string(), postval).await?;
+            let post = String::from(pvout);
             my_posts.push(post.to_string())
         }
         /*Mood::Switch => {
