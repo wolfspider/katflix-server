@@ -87,6 +87,16 @@ pub static INDEX_HTML: &str = r#"
         var uri = 'http://' + location.host + '/chat';
         var uristat = 'http://' + location.host + '/status';
         var sse = new EventSource(uri);
+        function removedom(msgidx) { 
+            var sdiv = document.getElementById(msgidx); 
+            sdiv.remove();
+            var sdiv = document.getElementById(msgidx+'upd'); 
+            sdiv.remove(); 
+            var sdiv = document.getElementById(msgidx+'del'); 
+            sdiv.remove(); 
+            var sdiv = document.getElementById(msgidx+'com'); 
+            sdiv.remove();
+        }
         function message(data) {
             var line = document.createElement('p');
             for(var i = 0; i < data.split(',').length - 1; i++) 
@@ -94,12 +104,12 @@ pub static INDEX_HTML: &str = r#"
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
                 var msgstrtrim = msgstr.split('::')[1];
-                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'>"+"("+msgidx+") "+msgstrtrim+"</div>";
+                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+"("+msgidx+") "+msgstrtrim+"</div></div>";
                 if(i > 0)
                 {
-                    line.innerHTML += "<div class='divstyle'><button>Update</button>&nbsp&nbsp<input type='updtext' id='updtext' /></div>";
-                    line.innerHTML += "<div class='divstyle'><button>Delete</button></div>";
-                    line.innerHTML += "<div class='divstyle'><button>Commit</button></div>";
+                    line.innerHTML += "<div id='"+msgidx+"upd'><div class='divstyle'><button>Update</button>&nbsp&nbsp<input type='updtext' id='updtext' /></div></div";
+                    line.innerHTML += "<div id='"+msgidx+"del'><div class='divstyle'><button onclick='removedom(\""+msgidx+"\")'>Delete</button></div></div>";
+                    line.innerHTML += "<div id='"+msgidx+"com'><div class='divstyle'><button>Commit</button></div></div>";
                 }
                 chat.appendChild(line);
             }            
