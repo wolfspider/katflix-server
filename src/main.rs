@@ -104,6 +104,24 @@ async fn main() {
         get_posts_status(my_id, msg, &users, dbinstance);
     warp::reply()});
 
+    let post_delete = 
+     warp::path("delete")
+    .and(warp::post())
+    .and(warp::path::param::<usize>())
+    .and(warp::body::content_length_limit(500))
+    .and(
+        warp::body::bytes().and_then(|body: bytes::Bytes| async move {
+            std::str::from_utf8(&body)
+                .map(String::from)
+                .map_err(|_e| warp::reject::custom(NotUtf8))
+            }),
+        )
+    .and(users.clone())
+    .and(dbinstance.clone())
+    .map(|my_id, msg, users, dbinstance| { 
+        delete_post(my_id, msg, &users, dbinstance);
+    warp::reply()});
+
     // GET /chat -> messages stream
     let chat_recv = warp::path("chat").and(warp::get()).and(users).map(|users| {
         // reply using server-sent events
@@ -177,6 +195,33 @@ fn get_posts_status(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
         //}
     });
 }
+
+fn delete_post(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
+    let mut new_msg = format!("User::User#{}: {},", my_id, msg);
+    
+    let vecstr = futures::executor::block_on(models::fdb_model::render_posts(&dbinstance));
+    
+    for fdbstr in vecstr {
+        let compstr = format!("{} ,", &fdbstr);
+        new_msg.push_str(&compstr);
+    }
+
+    // New message from this user, send it to everyone else (except same uid)...
+    //
+    // We use `retain` instead of a for loop so that we can reap any user that
+    // appears to have disconnected.
+    users.lock().unwrap().retain(|uid, tx| {
+        /*
+        if my_id == *uid {
+            // don't send to same user, but do retain
+            true
+        } else {*/
+            // If not `is_ok`, the SSE stream is gone, and so don't retain
+            tx.send(Message::Reply(new_msg.clone())).is_ok()
+        //}
+    });
+}
+
 
 fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>> + Send + 'static {
     // Use a counter to assign a new unique ID for this user.

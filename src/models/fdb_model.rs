@@ -86,8 +86,14 @@ pub static INDEX_HTML: &str = r#"
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
         var uristat = 'http://' + location.host + '/status';
+        var uridel = 'http://' + location.host + '/delete';
         var sse = new EventSource(uri);
         function removedom(msgidx) { 
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uridel, true);
+            xhr.send(msgidx);
+    
             var sdiv = document.getElementById(msgidx); 
             sdiv.remove();
             var sdiv = document.getElementById(msgidx+'upd'); 
@@ -331,7 +337,7 @@ async fn perform_posts_op(
             my_posts.push(post.to_string());
         }
         Post::Get => {
-            
+            //TODO: pick a lane!
             let mut postval = "";
             let pvout = get_post(&db, post_id.to_string(), postval).await?;
             let post = String::from(pvout);
