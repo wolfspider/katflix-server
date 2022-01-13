@@ -115,18 +115,18 @@ pub static INDEX_HTML: &str = r#"
         sse.onmessage = function(msg) {
             message(msg.data);
         };
-        send.onclick = function() {
+        document.getElementById('status').onclick = function() {
             var msg = text.value;
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", uri + '/' + user_id, true);
+            xhr.open("POST", uristat + '/' + user_id, true);
             xhr.send(msg);
             text.value = '';
             message('<You>: ' + msg);
         };
-        status.onclick = function() {
+        send.onclick = function() {
             var msg = text.value;
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", uristat, true);
+            xhr.open("POST", uri + '/' + user_id, true);
             xhr.send(msg);
             text.value = '';
             message('<You>: ' + msg);
