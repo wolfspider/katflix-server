@@ -8,6 +8,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
+use std::convert::TryFrom;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
@@ -136,7 +137,12 @@ async fn main() {
             .body(models::fdb_model::INDEX_HTML)
     });
 
-    let routes = index.or(chat_recv).or(vid).or(get_posts).or(posts_status);
+    let routes = index
+    .or(chat_recv)
+    .or(vid)
+    .or(get_posts)
+    .or(posts_status)
+    .or(post_delete);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 
@@ -199,7 +205,13 @@ fn get_posts_status(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
 fn delete_post(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
     let mut new_msg = format!("User::User#{}: {},", my_id, msg);
     
-    let vecstr = futures::executor::block_on(models::fdb_model::render_posts(&dbinstance));
+    println!("Id deleted is: {}",msg);
+
+    let delid = msg.parse::<i32>().unwrap();
+
+    let delidus = usize::try_from(delid).unwrap();
+    
+    let vecstr = futures::executor::block_on(models::fdb_model::delete_post_query(&dbinstance, delidus));
     
     for fdbstr in vecstr {
         let compstr = format!("{} ,", &fdbstr);

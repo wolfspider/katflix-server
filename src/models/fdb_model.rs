@@ -91,8 +91,8 @@ pub static INDEX_HTML: &str = r#"
         function removedom(msgidx) { 
             
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", uridel, true);
-            xhr.send(msgidx);
+            xhr.open("POST", uridel + '/' + msgidx.charAt(1), true);
+            xhr.send(msgidx.charAt(1));
     
             var sdiv = document.getElementById(msgidx); 
             sdiv.remove();
@@ -287,12 +287,18 @@ async fn delete_post_trx(trx: &Transaction, post: &str, body: &str) {
 }
 
 async fn delete_post(db: &Database, post: String, body: String) -> Result<()> {
-    db.transact_boxed_local(
-        (post, body),
-        move |trx, (post, body)| delete_post_trx(trx, post, body).map(|_| Ok(())).boxed_local(),
-        fdb::TransactOption::default(),
-    )
-    .await
+    
+    let trx = db.create_trx().expect("could not create transaction");
+
+    let post_key = pack(&("post", post, body));
+    
+    trx.clear(&post_key);
+
+    trx.commit().await.expect("failed to initialize data");
+
+    println!("Deleting posts...");
+
+    Ok(())
 }
 
 pub async fn init(db: &Database, all_posts: &[String]) {
@@ -385,6 +391,60 @@ async fn posts_op(post_id: usize, num_ops: usize) {
         //Choose posts from random collection
         //let post = posts.choose(&mut rng).map(|post| *post).unwrap();
 
+        let post = posts.iter().last().map(|post| *post).unwrap();
+
+        // on errors we recheck for available posts
+        if perform_posts_op(
+            &db,
+            &mut rng,
+            post,
+            &post_id,
+            &available_posts,
+            &mut my_posts,
+        )
+        .await
+        .is_err()
+        {
+            println!("getting available posts");
+            available_posts = Cow::Owned(get_available_posts(&db).await);
+        }
+
+        
+    }
+
+
+}
+
+async fn posts_op_del(post_id: usize, num_ops: usize, postid: usize) {
+    let db = Database::new_compat(None)
+        .await
+        .expect("failed to get database");
+
+    let post_id = format!("s{}", post_id);
+
+    //1 worker will pick at random 1-10 posts
+    let mut rng = rand::thread_rng();
+
+    let mut available_posts = Cow::Borrowed(&*ALL_POSTS);
+    let mut my_posts = Vec::<String>::new();
+
+    for _ in 0..num_ops {
+        let mut posts = Vec::<Post>::new();
+
+        /*
+        let postid_str = postid.to_string();
+
+        match post_id.as_str() {
+            "5" => {
+                posts.push(Post::Delete);
+            },
+            _ => {
+                posts.push(Post::Get);
+            }
+        }*/
+
+        posts.push(Post::Delete);
+        
         let post = posts.iter().last().map(|post| *post).unwrap();
 
         // on errors we recheck for available posts
@@ -573,6 +633,49 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
             i,
             thread::spawn(move || {
                 futures::executor::block_on(posts_op_get(i, WORKSZ));
+            }),
+        ));
+    }
+
+    let mut received_posts = Vec::<String>::new();
+
+    for (id, thread) in threads {
+        thread.join().expect("failed to join thread");
+
+        let post_id = format!("s{}", id);
+        let post_range = RangeOption::from(&("post", &post_id).into());
+
+        for key_value in db
+            .create_trx()
+            .unwrap()
+            .get_range(&post_range, 1_024, false)
+            .await
+            .expect("post_range failed")
+            .iter()
+        {
+            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
+            assert_eq!(post_id, s);
+
+            //println!("has body: {}", body);
+            let postcomp = format!("{}::{}", post_id, body);
+            received_posts.push(postcomp);
+        }
+    }
+
+    //println!("Ran {} transactions", poolsize * ops_per_pool);
+    received_posts
+}
+
+pub async fn delete_post_query(db: &Database, postid: usize) -> Vec<String>{
+
+    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
+
+    for i in 0..POOLSZ {
+        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
+        threads.push((
+            i,
+            thread::spawn(move || {
+                futures::executor::block_on(posts_op_del(i, WORKSZ, postid));
             }),
         ));
     }
