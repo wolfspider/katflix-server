@@ -178,6 +178,15 @@ async fn get_post_trx(trx: &Transaction, post_key: String, mut post_val: &str) -
     Ok(String::from(post_val))
 }
 
+async fn set_post_trx(trx: &Transaction, post_key: String, post_val: &str) -> Result<()> {
+
+    let key = post_key.as_bytes();
+    
+    trx.set(&key, post_val.as_bytes());
+
+    Ok(())
+}
+
 async fn create_post_trx(trx: &Transaction, post: &str, body: &str) -> Result<()> {
     
     let post_key = pack(&("post", post, body));
