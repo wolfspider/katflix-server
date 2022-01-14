@@ -7,7 +7,6 @@ use std::str;
 use futures::prelude::*;
 use rand::{rngs::ThreadRng, seq::SliceRandom};
 
-use foundationdb as fdb;
 use foundationdb::tuple::{pack, unpack, Subspace};
 use foundationdb::{Database, FdbError, RangeOption, TransactError, TransactOption, Transaction};
 
