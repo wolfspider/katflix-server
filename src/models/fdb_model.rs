@@ -779,3 +779,20 @@ pub async fn commit_posts_query(db: &Database) -> Vec<String>{
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
 }
+
+pub async fn async_tokio(db: &Database) -> foundationdb::FdbResult<()> {
+    
+    // write a value
+    let trx = db.create_trx()?;
+    trx.set(b"thisis", b"tokio"); // errors will be returned in the future result
+    trx.commit().await?;
+    
+    // read a value
+    let trx = db.create_trx()?;
+    let maybe_value = trx.get(b"thisis", false).await?;
+    let value = maybe_value.unwrap(); // unwrap the option
+
+    assert_eq!(b"tokio", &value.as_ref());
+
+    Ok(())
+}

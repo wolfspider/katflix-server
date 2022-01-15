@@ -172,12 +172,19 @@ async fn main() {
 fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
     let mut new_msg = format!("User::User#{}: {},", my_id, msg);
     
+    /*
     let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance));
     
     for fdbstr in vecstr {
         let compstr = format!("{} ,", &fdbstr);
         new_msg.push_str(&compstr);
-    }
+    }*/
+
+    tokio::spawn(async move { 
+        models::fdb_model::async_tokio(&dbinstance)
+        .await
+        .expect("could not run"); 
+    });
 
     // New message from this user, send it to everyone else (except same uid)...
     //
