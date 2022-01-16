@@ -43,6 +43,7 @@ const POSTS: &[&str] = &[
     "FAQS:",
     "contacts:",
     "help:",
+    "about:",
 ];
 
 const BODIES: &[&str] = &[
@@ -55,6 +56,7 @@ const BODIES: &[&str] = &[
     "frequently asked questions",
     "useful contacts",
     "forum development",
+    "contact information",
 ];
 
 pub static INDEX_HTML: &str = r#"
@@ -163,13 +165,8 @@ lazy_static! {
 fn all_posts() -> Vec<String> {
     let mut post_names: Vec<String> = Vec::new();
     for post in POSTS {
-        
-            for body in BODIES {
-                post_names.push(format!("{} {}", post, body));
-            }
-        
+        post_names.push(format!("{} {}", post, BODIES[POSTS.iter().position(|x| x == post).unwrap()]));    
     }
-
     post_names
 }
 
