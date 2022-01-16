@@ -9,6 +9,7 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::convert::TryFrom;
+use std::thread;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
@@ -172,20 +173,14 @@ async fn main() {
 fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
     let mut new_msg = format!("User::User#{}: {},", my_id, msg);
     
-    /*
+    
     let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance));
     
     for fdbstr in vecstr {
         let compstr = format!("{} ,", &fdbstr);
         new_msg.push_str(&compstr);
-    }*/
-
-    tokio::spawn(async move { 
-        models::fdb_model::async_tokio(&dbinstance)
-        .await
-        .expect("could not run"); 
-    });
-
+    }
+    
     // New message from this user, send it to everyone else (except same uid)...
     //
     // We use `retain` instead of a for loop so that we can reap any user that
@@ -204,6 +199,7 @@ fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
 
 fn get_posts_status(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
     let mut new_msg = format!("User::User#{}: {},", my_id, msg);
+    
     
     let vecstr = futures::executor::block_on(models::fdb_model::render_posts(&dbinstance));
     

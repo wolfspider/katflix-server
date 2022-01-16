@@ -657,6 +657,7 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
 
     for i in 0..POOLSZ {
         // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
+        
         threads.push((
             i,
             thread::spawn(move || {
@@ -780,7 +781,7 @@ pub async fn commit_posts_query(db: &Database) -> Vec<String>{
     received_posts
 }
 
-pub async fn async_tokio(db: &Database) -> foundationdb::FdbResult<()> {
+pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<()> {
     
     // write a value
     let trx = db.create_trx()?;
@@ -793,6 +794,6 @@ pub async fn async_tokio(db: &Database) -> foundationdb::FdbResult<()> {
     let value = maybe_value.unwrap(); // unwrap the option
 
     assert_eq!(b"tokio", &value.as_ref());
-
+    
     Ok(())
 }
