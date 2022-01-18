@@ -650,6 +650,7 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
 
 pub async fn render_posts(db: &Database) -> Vec<String>{
 
+    /*
     let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
 
     for i in 0..POOLSZ {
@@ -661,10 +662,15 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
                 futures::executor::block_on(posts_op_get(i, WORKSZ));
             }),
         ));
-    }
+    }*/
 
     let mut received_posts = Vec::<String>::new();
 
+    let outstr = async_tokio_get(db).await;
+
+    received_posts.push(outstr.unwrap());
+
+    /*
     for (id, thread) in threads {
         thread.join().expect("failed to join thread");
 
@@ -686,7 +692,7 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
             let postcomp = format!("{}::{}", post_id, body);
             received_posts.push(postcomp);
         }
-    }
+    }*/
 
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
@@ -778,7 +784,7 @@ pub async fn commit_posts_query(db: &Database) -> Vec<String>{
     received_posts
 }
 
-pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<()> {
+pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<String> {
     
     // write a value
     let trx = db.create_trx()?;
@@ -790,7 +796,9 @@ pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<()> {
     let maybe_value = trx.get(b"thisis", false).await?;
     let value = maybe_value.unwrap(); // unwrap the option
 
-    assert_eq!(b"tokio", &value.as_ref());
+    let outval = str::from_utf8(&value.as_ref()).unwrap();
+
+    //assert_eq!(b"tokio", &value.as_ref());
     
-    Ok(())
+    Ok(String::from(outval))
 }
