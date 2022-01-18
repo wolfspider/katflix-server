@@ -8,7 +8,7 @@ use futures::prelude::*;
 use rand::{rngs::ThreadRng, seq::SliceRandom};
 
 use foundationdb::tuple::{pack, unpack, Subspace};
-use foundationdb::{Database, FdbError, RangeOption, TransactError, TransactOption, Transaction};
+use foundationdb::{Database, FdbError, RangeOption, TransactError, TransactOption, Transaction, KeySelector};
 
 type Result<T> = std::result::Result<T, Error>;
 enum Error {
@@ -81,7 +81,7 @@ pub static INDEX_HTML: &str = r#"
         <div id="chat">
             <p><em>Connecting...</em></p>
         </div>
-        <input type="text" id="text" />
+        <input type="text" id="text" />&nbsp;<input type="value" id="value" />
         <button type="button" id="send">Add</button>
         <button type="button" id="status">Status</button>
         <button onclick="removedom('s0')">Delete</button>
@@ -103,8 +103,8 @@ pub static INDEX_HTML: &str = r#"
             {
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
-                var msgstrtrim = msgstr.split('::')[1];
-                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+"("+msgidx+") "+msgstrtrim+"</div></div>";
+                //var msgstrtrim = msgstr.split('::')[1];
+                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+msgidx+"</div></div>";
                 chat.appendChild(line);
             }            
             
@@ -546,20 +546,33 @@ async fn posts_op_commit(post_id: usize, num_ops: usize) {
 pub async fn get_available_posts(db: &Database) -> Vec<String> {
     let trx = db.create_trx().expect("could not create transaction");
 
-    let range = RangeOption::from(&Subspace::from("post"));
+    let key_begin = "s0";
 
+    let key_end = "t";
+
+    let begin = KeySelector::first_greater_or_equal(Cow::Borrowed(key_begin.as_bytes()));
+    let end = KeySelector::last_less_than(Cow::Borrowed(key_end.as_bytes()));
+    let opt = RangeOption::from((begin, end));
+
+    let got_range = trx.get_range(&opt, 1_024, false).await;
+
+    //let range = RangeOption::from(&Subspace::from("post"));
+
+    /*
     let got_range = trx
         .get_range(&range, 1_024, false)
         .await
-        .expect("failed to get posts");
+        .expect("failed to get posts");*/
     let mut available_posts = Vec::<String>::new();
 
-    for key_value in got_range.iter() {
-        let count: i64 = unpack(key_value.value()).expect("failed to decode count");
+    for key_values in &got_range {
+        let count: usize = key_values.len();
 
-        if count > 0 {
-            let post: String = unpack(key_value.key()).expect("failed to decode post");
-            available_posts.push(post);
+        for key_value in key_values {
+            if count > 0 {
+                let post: String = String::from(str::from_utf8(key_value.value().as_ref()).unwrap());
+                available_posts.push(post);
+            }
         }
     }
 
@@ -607,62 +620,28 @@ pub async fn run_query(db: &Database, poolsize: usize, ops_per_pool: usize) {
 
 pub async fn run_query_posts(db: &Database, post_val: String) -> Vec<String>{
 
-    /*
-    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
-
-    for i in 0..POOLSZ {
-        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
-        threads.push((
-            i,
-            thread::spawn(move || {
-                futures::executor::block_on(posts_op(i, WORKSZ));
-            }),
-        ));
-    }*/
-
     let mut received_posts = Vec::<String>::new();
 
     let outstr = async_tokio_set(db, post_val).await;
 
     received_posts.push(outstr.unwrap());
 
-    /*
-    for (id, thread) in threads {
-        thread.join().expect("failed to join thread");
-
-        let post_id = format!("s{}", id);
-        let post_range = RangeOption::from(&("post", &post_id).into());
-
-        for key_value in db
-            .create_trx()
-            .unwrap()
-            .get_range(&post_range, 1_024, false)
-            .await
-            .expect("post_range failed")
-            .iter()
-        {
-            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
-            assert_eq!(post_id, s);
-
-            //println!("has body: {}", body);
-            let postcomp = format!("{}::{}", post_id, body);
-            received_posts.push(postcomp);
-        }
-    }*/
-
-    //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
 }
 
 pub async fn render_posts(db: &Database) -> Vec<String>{
 
-    let mut received_posts = Vec::<String>::new();
+    let mut posts = Vec::<String>::new();
+    
+    let available_posts = get_available_posts(&db).await;
 
-    let outstr = async_tokio_get(db).await;
+    for currentpost in available_posts {
+        println!("{}", currentpost);
+        posts.push(currentpost.to_owned());
+    }
 
-    received_posts.push(outstr.unwrap());
+    posts
 
-    received_posts
 }
 
 pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<String> {
@@ -670,6 +649,7 @@ pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<String> {
     // write a value
     let trx = db.create_trx()?;
     trx.set(b"thisis", b"tokio"); // errors will be returned in the future result
+    
     trx.commit().await?;
     
     // read a value
