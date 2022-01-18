@@ -605,8 +605,9 @@ pub async fn run_query(db: &Database, poolsize: usize, ops_per_pool: usize) {
 
 }
 
-pub async fn run_query_posts(db: &Database) -> Vec<String>{
+pub async fn run_query_posts(db: &Database, post_val: String) -> Vec<String>{
 
+    /*
     let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
 
     for i in 0..POOLSZ {
@@ -617,56 +618,11 @@ pub async fn run_query_posts(db: &Database) -> Vec<String>{
                 futures::executor::block_on(posts_op(i, WORKSZ));
             }),
         ));
-    }
-
-    let mut received_posts = Vec::<String>::new();
-
-    for (id, thread) in threads {
-        thread.join().expect("failed to join thread");
-
-        let post_id = format!("s{}", id);
-        let post_range = RangeOption::from(&("post", &post_id).into());
-
-        for key_value in db
-            .create_trx()
-            .unwrap()
-            .get_range(&post_range, 1_024, false)
-            .await
-            .expect("post_range failed")
-            .iter()
-        {
-            let (_, s, body) = unpack::<(String, String, String)>(key_value.key()).unwrap();
-            assert_eq!(post_id, s);
-
-            //println!("has body: {}", body);
-            let postcomp = format!("{}::{}", post_id, body);
-            received_posts.push(postcomp);
-        }
-    }
-
-    //println!("Ran {} transactions", poolsize * ops_per_pool);
-    received_posts
-}
-
-pub async fn render_posts(db: &Database) -> Vec<String>{
-
-    /*
-    let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);
-
-    for i in 0..POOLSZ {
-        // TODO: ClusterInner has a mutable pointer reference, if thread-safe, mark that trait as Sync, then we can clone DB here...
-        
-        threads.push((
-            i,
-            thread::spawn(move || {
-                futures::executor::block_on(posts_op_get(i, WORKSZ));
-            }),
-        ));
     }*/
 
     let mut received_posts = Vec::<String>::new();
 
-    let outstr = async_tokio_get(db).await;
+    let outstr = async_tokio_set(db, post_val).await;
 
     received_posts.push(outstr.unwrap());
 
@@ -696,6 +652,55 @@ pub async fn render_posts(db: &Database) -> Vec<String>{
 
     //println!("Ran {} transactions", poolsize * ops_per_pool);
     received_posts
+}
+
+pub async fn render_posts(db: &Database) -> Vec<String>{
+
+    let mut received_posts = Vec::<String>::new();
+
+    let outstr = async_tokio_get(db).await;
+
+    received_posts.push(outstr.unwrap());
+
+    received_posts
+}
+
+pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<String> {
+    
+    // write a value
+    let trx = db.create_trx()?;
+    trx.set(b"thisis", b"tokio"); // errors will be returned in the future result
+    trx.commit().await?;
+    
+    // read a value
+    let trx = db.create_trx()?;
+    let maybe_value = trx.get(b"thisis", false).await?;
+    let value = maybe_value.unwrap(); // unwrap the option
+
+    let outval = str::from_utf8(&value.as_ref()).unwrap();
+
+    //assert_eq!(b"tokio", &value.as_ref());
+    
+    Ok(String::from(outval))
+}
+
+pub async fn async_tokio_set(db: &Database, val: String) -> foundationdb::FdbResult<String> {
+    
+    // write a value
+    let trx = db.create_trx()?;
+    trx.set(b"thisis", val.as_bytes()); // errors will be returned in the future result
+    trx.commit().await?;
+    
+    // read a value
+    let trx = db.create_trx()?;
+    let maybe_value = trx.get(b"thisis", false).await?;
+    let value = maybe_value.unwrap(); // unwrap the option
+
+    let outval = str::from_utf8(&value.as_ref()).unwrap();
+
+    //assert_eq!(b"tokio", &value.as_ref());
+    
+    Ok(String::from(outval))
 }
 
 pub async fn delete_post_query(db: &Database, postid: usize) -> Vec<String>{
@@ -784,21 +789,3 @@ pub async fn commit_posts_query(db: &Database) -> Vec<String>{
     received_posts
 }
 
-pub async fn async_tokio_get(db: &Database) -> foundationdb::FdbResult<String> {
-    
-    // write a value
-    let trx = db.create_trx()?;
-    trx.set(b"thisis", b"tokio"); // errors will be returned in the future result
-    trx.commit().await?;
-    
-    // read a value
-    let trx = db.create_trx()?;
-    let maybe_value = trx.get(b"thisis", false).await?;
-    let value = maybe_value.unwrap(); // unwrap the option
-
-    let outval = str::from_utf8(&value.as_ref()).unwrap();
-
-    //assert_eq!(b"tokio", &value.as_ref());
-    
-    Ok(String::from(outval))
-}
