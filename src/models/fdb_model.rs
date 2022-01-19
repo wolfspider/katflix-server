@@ -551,8 +551,10 @@ pub async fn get_available_posts(db: &Database) -> Vec<String> {
     let key_end = "t";
 
     let begin = KeySelector::first_greater_or_equal(Cow::Borrowed(key_begin.as_bytes()));
-    let end = KeySelector::last_less_than(Cow::Borrowed(key_end.as_bytes()));
+    let end = KeySelector::first_greater_than(Cow::Borrowed(key_end.as_bytes()));
     let opt = RangeOption::from((begin, end));
+
+    //let opt = RangeOption::from(&Subspace::from("post"));
 
     let got_range = trx.get_range(&opt, 1_024, false).await;
 
