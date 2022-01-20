@@ -572,8 +572,11 @@ pub async fn get_available_posts(db: &Database) -> Vec<String> {
 
         for key_value in key_values {
             if count > 0 {
+                let postkey = String::from(str::from_utf8(key_value.key().as_ref()).unwrap());
                 let post: String = String::from(str::from_utf8(key_value.value().as_ref()).unwrap());
-                available_posts.push(post);
+
+                let postcomp = format!("{} {}", postkey, post);
+                available_posts.push(postcomp);
             }
         }
     }
