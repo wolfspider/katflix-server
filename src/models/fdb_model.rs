@@ -34,16 +34,16 @@ const POOLSZ: usize = 10;
 const WORKSZ: usize = 1;
 
 const POSTS: &[&str] = &[
-    "introduction:",
-    "stickies:",
-    "howtos:",
-    "beginner:",
-    "intermediate:",
-    "advanced:",
-    "FAQS:",
-    "contacts:",
-    "help:",
-    "about:",
+    "post-introduction",
+    "post-stickies",
+    "post-howtos",
+    "post-beginner",
+    "post-intermediate",
+    "post-advanced",
+    "post-FAQS",
+    "post-contacts",
+    "post-help",
+    "post-about",
 ];
 
 const BODIES: &[&str] = &[
@@ -151,9 +151,14 @@ pub static INDEX_HTML: &str = r#"
 //Data Model is 1-to-1 post to body
 
 fn init_posts(trx: &Transaction, all_posts: &[String]) {
-    let post_subspace = Subspace::from("post");
+    //let post_subspace = Subspace::from("post");
     for post in all_posts {
-        trx.set(&post_subspace.pack(post), &pack(&100_i64));
+        
+        let mut kvs = post.split(":");
+        let k = kvs.next();
+        let v = kvs.next();
+        
+        trx.set(&k.unwrap().to_string().as_bytes(), &v.unwrap().as_bytes());
     }
 }
 
@@ -165,7 +170,9 @@ lazy_static! {
 fn all_posts() -> Vec<String> {
     let mut post_names: Vec<String> = Vec::new();
     for post in POSTS {
-        post_names.push(format!("{} {}", post, BODIES[POSTS.iter().position(|x| x == post).unwrap()]));    
+        post_names.push(format!("{}:{}", 
+        post, 
+        BODIES[POSTS.iter().position(|x| x == post).unwrap()]));    
     }
     post_names
 }
@@ -294,7 +301,12 @@ async fn delete_post(db: &Database, post: String, body: String) -> Result<()> {
 
 pub async fn init(db: &Database, all_posts: &[String]) {
     let trx = db.create_trx().expect("could not create transaction");
-    trx.clear_subspace_range(&"post".into());
+    //trx.clear_subspace_range(&"post".into());
+    let key_begin = "post-";
+    let key_end = "post.";
+
+    trx.clear_range(key_begin.as_bytes(), key_end.as_bytes());
+
     init_posts(&trx, all_posts);
 
     trx.commit().await.expect("failed to initialize data");
@@ -546,9 +558,10 @@ async fn posts_op_commit(post_id: usize, num_ops: usize) {
 pub async fn get_available_posts(db: &Database) -> Vec<String> {
     let trx = db.create_trx().expect("could not create transaction");
 
-    let key_begin = "s0";
+    
+    let key_begin = "post-";
 
-    let key_end = "t";
+    let key_end = "post.";
 
     let begin = KeySelector::first_greater_or_equal(Cow::Borrowed(key_begin.as_bytes()));
     let end = KeySelector::first_greater_than(Cow::Borrowed(key_end.as_bytes()));
@@ -560,22 +573,21 @@ pub async fn get_available_posts(db: &Database) -> Vec<String> {
 
     //let range = RangeOption::from(&Subspace::from("post"));
 
-    /*
-    let got_range = trx
-        .get_range(&range, 1_024, false)
-        .await
-        .expect("failed to get posts");*/
-    let mut available_posts = Vec::<String>::new();
-
+    
+    let mut available_posts = Vec::<String>::new();        
+    
     for key_values in &got_range {
         let count: usize = key_values.len();
 
         for key_value in key_values {
             if count > 0 {
-                let postkey = String::from(str::from_utf8(key_value.key().as_ref()).unwrap());
-                let post: String = String::from(str::from_utf8(key_value.value().as_ref()).unwrap());
+                
+                //let (k, v) = unpack::<(String, String)>(key_value.key()).unwrap();
+                
+                let k = String::from(str::from_utf8(key_value.key()).unwrap());
+                let v = String::from(str::from_utf8(key_value.value()).unwrap());
 
-                let postcomp = format!("{} {}", postkey, post);
+                let postcomp = format!("{} {}", k, v);
                 available_posts.push(postcomp);
             }
         }
