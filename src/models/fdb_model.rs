@@ -34,29 +34,29 @@ const POOLSZ: usize = 10;
 const WORKSZ: usize = 1;
 
 const POSTS: &[&str] = &[
-    "post-introduction",
-    "post-stickies",
-    "post-howtos",
-    "post-beginner",
-    "post-intermediate",
-    "post-advanced",
-    "post-FAQS",
-    "post-contacts",
-    "post-help",
-    "post-about",
+    "post-001-[introduction]",
+    "post-002-[stickies]",
+    "post-003-[howtos]",
+    "post-004-[beginner]",
+    "post-005-[intermediate]",
+    "post-006-[advanced]",
+    "post-007-[FAQS]",
+    "post-008-[contacts]",
+    "post-009-[help]",
+    "post-010-[about]",
 ];
 
 const BODIES: &[&str] = &[
-    "welcome to the forum",
-    "common threads",
-    "how do I do this",
-    "intro code for beginners",
-    "know enough beyond beginner",
-    "I am sharing tips",
-    "frequently asked questions",
-    "useful contacts",
-    "forum development",
-    "contact information",
+    "[welcome to the forum]",
+    "[common threads]",
+    "[how do I do this]",
+    "[intro code for beginners]",
+    "[know enough beyond beginner]",
+    "[I am sharing tips]",
+    "[frequently asked questions]",
+    "[useful contacts]",
+    "[forum development]",
+    "[contact information]",
 ];
 
 pub static INDEX_HTML: &str = r#"
@@ -158,7 +158,7 @@ fn init_posts(trx: &Transaction, all_posts: &[String]) {
         let k = kvs.next();
         let v = kvs.next();
         
-        trx.set(&k.unwrap().to_string().as_bytes(), &v.unwrap().as_bytes());
+        trx.set(&k.unwrap().to_string().as_bytes(), &v.unwrap().to_string().as_bytes());
     }
 }
 
