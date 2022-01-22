@@ -106,9 +106,10 @@ pub static INDEX_HTML: &str = r#"
                 if(i !== 0) {
                     var pmsg = msgstr.split('-');
                     var pjmsg = pmsg[2].replaceAll('|',',').replaceAll('_',':');
-                    console.log(pmsg);
-                    console.log(JSON.parse(pjmsg));
-                    line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+msgidx+"</div></div>";
+                    var pobj = JSON.parse(pjmsg);
+                    pobj.idx = pmsg[0]+"-"+pmsg[1];
+                    console.log(pobj);
+                    line.innerHTML += "<div id='"+pobj.idx+"' class='divstyle'>"+pobj.title+"<div>"+pobj.post+"</div></div>";
                 }
                 else {
                     //var msgstrtrim = msgstr.split('::')[1];
