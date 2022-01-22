@@ -100,9 +100,11 @@ pub static INDEX_HTML: &str = r#"
         var uricommit = 'http://' + location.host + '/commit';
         var sse = new EventSource(uri);
         function removedom(msgidx) { 
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", uridel + '/' + msgidx.charAt(1), true);
-            xhr.send(msgidx.charAt(1));
+            
+            console.log(msgidx);
+            //var xhr = new XMLHttpRequest();
+            //xhr.open("POST", uridel + '/' + msgidx.charAt(1), true);
+            //xhr.send(msgidx.charAt(1));
         }
         function message(data) {
             var line = document.createElement('p');
@@ -121,6 +123,7 @@ pub static INDEX_HTML: &str = r#"
                     pobj.title+
                     "<div class='poststyle'>"+
                     pobj.post+
+                    "<div><button onclick='removedom(\""+pobj.idx+"\")'>Delete</button></div>"+
                     "</div></div>";
                 }
                 else {
