@@ -35,28 +35,28 @@ const WORKSZ: usize = 1;
 
 const POSTS: &[&str] = &[
     r#"post-001-{"title"_"introduction""#,
-    r#"post-002-[stickies]"#,
-    r#"post-003-[howtos]"#,
-    r#"post-004-[beginner]"#,
-    r#"post-005-[intermediate]"#,
-    r#"post-006-[advanced]"#,
-    r#"post-007-[FAQS]"#,
-    r#"post-008-[contacts]"#,
-    r#"post-009-[help]"#,
-    r#"post-010-[about]"#,
+    r#"post-002-{"title"_"stickies""#,
+    r#"post-003-{"title"_"howtos""#,
+    r#"post-004-{"title"_"beginner""#,
+    r#"post-005-{"title"_"intermediate""#,
+    r#"post-006-{"title"_"advanced""#,
+    r#"post-007-{"title"_"FAQS""#,
+    r#"post-008-{"title"_"contacts""#,
+    r#"post-009-{"title"_"help""#,
+    r#"post-010-{"title"_"about""#,
 ];
 
 const BODIES: &[&str] = &[
     r#""post"_"welcome to the forum"}"#,
-    r#"[common threads]"#,
-    r#"[how do I do this]"#,
-    r#"[intro code for beginners]"#,
-    r#"[know enough beyond beginner]"#,
-    r#"[I am sharing tips]"#,
-    r#"[frequently asked questions]"#,
-    r#"[useful contacts]"#,
-    r#"[forum development]"#,
-    r#"[contact information]"#,
+    r#""post"_"common threads"}"#,
+    r#""post"_"how do I do this"}"#,
+    r#""post"_"intro code for beginners"}"#,
+    r#""post"_"know enough beyond beginner"}"#,
+    r#""post"_"I am sharing tips"}"#,
+    r#""post"_"frequently asked questions"}"#,
+    r#""post"_"useful contacts"}"#,
+    r#""post"_"forum development"}"#,
+    r#""post"_"contact information"}"#,
 ];
 
 pub static INDEX_HTML: &str = r#"
@@ -72,7 +72,7 @@ pub static INDEX_HTML: &str = r#"
         border-color:black;
         border-width:1px;
         font-size: 15px;
-        width: 15%;
+        width: 33%;
         align: center;
     }
     </style>
@@ -103,9 +103,18 @@ pub static INDEX_HTML: &str = r#"
             {
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
-                //var msgstrtrim = msgstr.split('::')[1];
-                line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+msgidx+"</div></div>";
-                chat.appendChild(line);
+                if(i !== 0) {
+                    var pmsg = msgstr.split('-');
+                    var pjmsg = pmsg[2].replaceAll('|',',').replaceAll('_',':');
+                    console.log(pmsg);
+                    console.log(JSON.parse(pjmsg));
+                    line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+msgidx+"</div></div>";
+                }
+                else {
+                    //var msgstrtrim = msgstr.split('::')[1];
+                    line.innerHTML += "<div id='"+msgidx+"' class='divstyle'><div>"+msgidx+"</div></div>";
+                    chat.appendChild(line);
+                }
             }            
             
         }
