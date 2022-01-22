@@ -8,8 +8,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use std::convert::TryFrom;
-use std::thread;
+use url::form_urlencoded::{byte_serialize, parse};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
@@ -109,7 +108,7 @@ async fn main() {
     let post_delete = 
      warp::path("delete")
     .and(warp::post())
-    .and(warp::path::param::<usize>())
+    .and(warp::path::param::<String>())
     .and(warp::body::content_length_limit(500))
     .and(
         warp::body::bytes().and_then(|body: bytes::Bytes| async move {
@@ -224,22 +223,24 @@ fn get_posts_status(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
     });
 }
 
-fn delete_post(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let mut new_msg = format!("User::User#{}: {},", my_id, msg);
+fn delete_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
+    let mut new_msg = format!("User Deleted Post::User#{}: {},", my_id, msg);
     
-    println!("Id deleted is: {}",msg);
+    let key = my_id.clone();
 
-    let delid = msg.parse::<i32>().unwrap();
-
-    let delidus = usize::try_from(delid).unwrap();
+    let decoded: String = parse(key.as_bytes())
+    .map(|(key, val)| [key, val].concat())
+    .collect();
     
-    let vecstr = futures::executor::block_on(models::fdb_model::delete_post_query(&dbinstance, delidus));
-    
-    for fdbstr in vecstr {
-        let compstr = format!("{} ,", &fdbstr);
-        new_msg.push_str(&compstr);
-    }
+    //println!("Id deleted is: {}",msg);
 
+    //let delid = msg.parse::<i32>().unwrap();
+
+    //let delidus = usize::try_from(delid).unwrap();
+    
+    let delstr = futures::executor::block_on(models::fdb_model::delete_post_async(&dbinstance, decoded));
+    
+    new_msg.push_str(&delstr.unwrap());
     // New message from this user, send it to everyone else (except same uid)...
     //
     // We use `retain` instead of a for loop so that we can reap any user that

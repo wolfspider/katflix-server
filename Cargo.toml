@@ -16,6 +16,7 @@ console = "0.15"
 lazy_static = "1.4.0"
 rand = "0.8.4"
 bytes = "1.1.0"
+url = "2.2.2"
 
 # Serde
 serde = "1.0.133"

@@ -100,11 +100,13 @@ pub static INDEX_HTML: &str = r#"
         var uricommit = 'http://' + location.host + '/commit';
         var sse = new EventSource(uri);
         function removedom(msgidx) { 
-            
+            var delarr = msgidx.split('-');
+            var key = `post-${delarr[1]}-{"title"_"${delarr[2]}"`;
+            console.log(key);
             console.log(msgidx);
-            //var xhr = new XMLHttpRequest();
-            //xhr.open("POST", uridel + '/' + msgidx.charAt(1), true);
-            //xhr.send(msgidx.charAt(1));
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uridel + '/' + key, true);
+            xhr.send(msgidx);
         }
         function message(data) {
             var line = document.createElement('p');
@@ -113,17 +115,19 @@ pub static INDEX_HTML: &str = r#"
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
                 if(i !== 0) {
+                    console.log(pmsg);
                     var pmsg = msgstr.split('-');
                     var pjmsg = pmsg[2].replaceAll('|',',').replaceAll('_',':');
                     var pobj = JSON.parse(pjmsg);
                     pobj.idx = pmsg[0]+"-"+pmsg[1];
+                    var delidx = pobj.idx+"-"+pobj.title;
                     console.log(pobj);
                     line.innerHTML += 
                     "<div id='"+pobj.idx+"' class='divstyle'>"+
                     pobj.title+
                     "<div class='poststyle'>"+
                     pobj.post+
-                    "<div><button onclick='removedom(\""+pobj.idx+"\")'>Delete</button></div>"+
+                    "<div><button onclick='removedom(\""+delidx+"\")'>Delete</button></div>"+
                     "</div></div>";
                 }
                 else {
@@ -324,17 +328,17 @@ async fn delete_post(db: &Database, post: String, body: String) -> Result<()> {
     Ok(())
 }
 
-async fn delete_post_range(db: &Database, key_begin: String, key_end: String) -> Result<()> {
+pub async fn delete_post_async(db: &Database, key: String) -> foundationdb::FdbResult<String> {
     
     let trx = db.create_trx().expect("could not create transaction");
 
-    trx.clear_range(key_begin.as_bytes(), key_end.as_bytes());
+    let k = key.clone();
 
+    trx.clear(k.as_bytes());
+    
     trx.commit().await.expect("failed to commit deletion");
 
-    println!("Deleted posts");
-
-    Ok(())
+    Ok(String::from("Deleted posts"))
 }
 
 pub async fn init(db: &Database, all_posts: &[String]) {
