@@ -34,29 +34,29 @@ const POOLSZ: usize = 10;
 const WORKSZ: usize = 1;
 
 const POSTS: &[&str] = &[
-    "post-001-[introduction]",
-    "post-002-[stickies]",
-    "post-003-[howtos]",
-    "post-004-[beginner]",
-    "post-005-[intermediate]",
-    "post-006-[advanced]",
-    "post-007-[FAQS]",
-    "post-008-[contacts]",
-    "post-009-[help]",
-    "post-010-[about]",
+    r#"post-001-{"title"_"introduction""#,
+    r#"post-002-[stickies]"#,
+    r#"post-003-[howtos]"#,
+    r#"post-004-[beginner]"#,
+    r#"post-005-[intermediate]"#,
+    r#"post-006-[advanced]"#,
+    r#"post-007-[FAQS]"#,
+    r#"post-008-[contacts]"#,
+    r#"post-009-[help]"#,
+    r#"post-010-[about]"#,
 ];
 
 const BODIES: &[&str] = &[
-    "[welcome to the forum]",
-    "[common threads]",
-    "[how do I do this]",
-    "[intro code for beginners]",
-    "[know enough beyond beginner]",
-    "[I am sharing tips]",
-    "[frequently asked questions]",
-    "[useful contacts]",
-    "[forum development]",
-    "[contact information]",
+    r#""post"_"welcome to the forum"}"#,
+    r#"[common threads]"#,
+    r#"[how do I do this]"#,
+    r#"[intro code for beginners]"#,
+    r#"[know enough beyond beginner]"#,
+    r#"[I am sharing tips]"#,
+    r#"[frequently asked questions]"#,
+    r#"[useful contacts]"#,
+    r#"[forum development]"#,
+    r#"[contact information]"#,
 ];
 
 pub static INDEX_HTML: &str = r#"
@@ -587,7 +587,7 @@ pub async fn get_available_posts(db: &Database) -> Vec<String> {
                 let k = String::from(str::from_utf8(key_value.key()).unwrap());
                 let v = String::from(str::from_utf8(key_value.value()).unwrap());
 
-                let postcomp = format!("{} {}", k, v);
+                let postcomp = format!("{}|{}", k, v);
                 available_posts.push(postcomp);
             }
         }
