@@ -324,6 +324,19 @@ async fn delete_post(db: &Database, post: String, body: String) -> Result<()> {
     Ok(())
 }
 
+async fn delete_post_range(db: &Database, key_begin: String, key_end: String) -> Result<()> {
+    
+    let trx = db.create_trx().expect("could not create transaction");
+
+    trx.clear_range(key_begin.as_bytes(), key_end.as_bytes());
+
+    trx.commit().await.expect("failed to commit deletion");
+
+    println!("Deleted posts");
+
+    Ok(())
+}
+
 pub async fn init(db: &Database, all_posts: &[String]) {
     let trx = db.create_trx().expect("could not create transaction");
     //trx.clear_subspace_range(&"post".into());
