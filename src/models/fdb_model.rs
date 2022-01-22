@@ -71,9 +71,16 @@ pub static INDEX_HTML: &str = r#"
         border-style:solid;
         border-color:black;
         border-width:1px;
-        font-size: 15px;
+        font-size: 20px;
         width: 33%;
-        align: center;
+    }
+    .poststyle
+    {
+        border-style:solid;
+        border-color:black;
+        border-width:1px;
+        font-size: 15px;
+        background-color: #cbe2f7;
     }
     </style>
     <body>
@@ -109,7 +116,12 @@ pub static INDEX_HTML: &str = r#"
                     var pobj = JSON.parse(pjmsg);
                     pobj.idx = pmsg[0]+"-"+pmsg[1];
                     console.log(pobj);
-                    line.innerHTML += "<div id='"+pobj.idx+"' class='divstyle'>"+pobj.title+"<div>"+pobj.post+"</div></div>";
+                    line.innerHTML += 
+                    "<div id='"+pobj.idx+"' class='divstyle'>"+
+                    pobj.title+
+                    "<div class='poststyle'>"+
+                    pobj.post+
+                    "</div></div>";
                 }
                 else {
                     //var msgstrtrim = msgstr.split('::')[1];
