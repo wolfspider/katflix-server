@@ -88,16 +88,27 @@ pub static INDEX_HTML: &str = r#"
         <div id="chat">
             <p><em>Connecting...</em></p>
         </div>
-        <input type="text" id="text" />&nbsp;<input type="value" id="value" />
+        <div id="add-fields" style="background-color: #88a2b9; width: 33%;">
+        <p>Title</p><input type="text" id="inkey" />
+        <p>Post</p><input type="text" id="inval" />
+        <button type="button" id="create">Create</button>
+        </div>
+        <div id="ctrl-fields">
+        <p>Chat</p>
+        <input type="text" id="text" />
         <button type="button" id="send">Add</button>
         <button type="button" id="status">Status</button>
         <button onclick="removedom('s0')">Delete</button>
         <button type="button" id="commit">Commit</button>
+        </div>
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
         var uristat = 'http://' + location.host + '/status';
         var uridel = 'http://' + location.host + '/delete';
         var uricommit = 'http://' + location.host + '/commit';
+        var uricreate = 'http://' + location.host + '/create';
+        var postslength = 0;
+        const zeroPad = (num, places) => String(num).padStart(places, '0');
         var sse = new EventSource(uri);
         function removedom(msgidx) { 
             var delarr = msgidx.split('-');
@@ -110,7 +121,8 @@ pub static INDEX_HTML: &str = r#"
         }
         function message(data) {
             var line = document.createElement('p');
-            for(var i = 0; i < data.split(',').length - 1; i++) 
+            postslength = data.split(',').length - 1;
+            for(var i = 0; i < postslength; i++) 
             {
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
@@ -136,7 +148,7 @@ pub static INDEX_HTML: &str = r#"
                     chat.appendChild(line);
                 }
             }            
-            
+            window.scrollByPages(1);
         }
         sse.onopen = function() {
             chat.innerHTML = "<p><em>Connected!</em></p>";
@@ -161,6 +173,18 @@ pub static INDEX_HTML: &str = r#"
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uricommit + '/' + user_id, true);
             xhr.send(msg);
+            text.value = '';
+            message('<You>: ' + msg);
+        };
+        document.getElementById('create').onclick = function() {
+            var key = inkey.value;
+            var value = inval.value;
+            var idx = zeroPad(postslength, 3);
+            var kv = `post-${idx}-{"title"_"${key}"|"post"_"${value}"}`;
+            console.log(kv);
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uricreate + '/' + kv, true);
+            xhr.send(kv);
             text.value = '';
             message('<You>: ' + msg);
         };

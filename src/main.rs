@@ -232,12 +232,6 @@ fn delete_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::D
     .map(|(key, val)| [key, val].concat())
     .collect();
     
-    //println!("Id deleted is: {}",msg);
-
-    //let delid = msg.parse::<i32>().unwrap();
-
-    //let delidus = usize::try_from(delid).unwrap();
-    
     let delstr = futures::executor::block_on(models::fdb_model::delete_post_async(&dbinstance, decoded));
     
     new_msg.push_str(&delstr.unwrap());
