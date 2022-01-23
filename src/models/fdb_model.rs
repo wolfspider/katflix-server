@@ -766,6 +766,30 @@ pub async fn async_tokio_set(db: &Database, val: String) -> foundationdb::FdbRes
     Ok(String::from(outval))
 }
 
+pub async fn create_post_async(db: &Database, key: String, value: String) -> foundationdb::FdbResult<String> {
+    
+    // write a value
+    let trx = db.create_trx()?;
+
+    let k = key.clone();
+
+    let v = value.clone();
+
+    trx.set(k.as_bytes(), v.as_bytes()); // errors will be returned in the future result
+    trx.commit().await?;
+    
+    // read a value
+    let trx = db.create_trx()?;
+    let maybe_value = trx.get(k.as_bytes(), false).await?;
+    let value = maybe_value.unwrap(); // unwrap the option
+
+    let outval = str::from_utf8(&value.as_ref()).unwrap();
+
+    //assert_eq!(b"tokio", &value.as_ref());
+    
+    Ok(String::from(outval))
+}
+
 pub async fn delete_post_query(db: &Database, postid: usize) -> Vec<String>{
 
     let mut threads: Vec<(usize, thread::JoinHandle<()>)> = Vec::with_capacity(POOLSZ);

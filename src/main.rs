@@ -123,10 +123,10 @@ async fn main() {
         delete_post(my_id, msg, &users, dbinstance);
     warp::reply()});
 
-    let post_commit = 
-     warp::path("commit")
+    let post_create = 
+     warp::path("create")
     .and(warp::post())
-    .and(warp::path::param::<usize>())
+    .and(warp::path::param::<String>())
     .and(warp::body::content_length_limit(500))
     .and(
         warp::body::bytes().and_then(|body: bytes::Bytes| async move {
@@ -138,7 +138,7 @@ async fn main() {
     .and(users.clone())
     .and(dbinstance.clone())
     .map(|my_id, msg, users, dbinstance| { 
-        get_posts_commit(my_id, msg, &users, dbinstance);
+        create_post(my_id, msg, &users, dbinstance);
     warp::reply()});
 
     // GET /chat -> messages stream
@@ -161,7 +161,7 @@ async fn main() {
     .or(get_posts)
     .or(posts_status)
     .or(post_delete)
-    .or(post_commit);
+    .or(post_create);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 
@@ -235,6 +235,42 @@ fn delete_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::D
     let delstr = futures::executor::block_on(models::fdb_model::delete_post_async(&dbinstance, decoded));
     
     new_msg.push_str(&delstr.unwrap());
+    // New message from this user, send it to everyone else (except same uid)...
+    //
+    // We use `retain` instead of a for loop so that we can reap any user that
+    // appears to have disconnected.
+    users.lock().unwrap().retain(|uid, tx| {
+        /*
+        if my_id == *uid {
+            // don't send to same user, but do retain
+            true
+        } else {*/
+            // If not `is_ok`, the SSE stream is gone, and so don't retain
+            tx.send(Message::Reply(new_msg.clone())).is_ok()
+        //}
+    });
+}
+
+fn create_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
+    let mut new_msg = format!("User::User#{}: {},", my_id, msg);
+    
+    let key = my_id.clone();
+
+    let decoded: String = parse(key.as_bytes())
+    .map(|(key, val)| [key, val].concat())
+    .collect();
+
+    let mut kvs = decoded.split("|");
+    let k = kvs.next();
+    let v = kvs.next();
+    
+    let createstr = futures::executor::block_on(models::fdb_model::create_post_async(
+        &dbinstance, 
+        k.unwrap().to_string(), 
+        v.unwrap().to_string()));
+    
+    new_msg.push_str(&createstr.unwrap());
+
     // New message from this user, send it to everyone else (except same uid)...
     //
     // We use `retain` instead of a for loop so that we can reap any user that
