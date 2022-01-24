@@ -100,8 +100,6 @@ pub static INDEX_HTML: &str = r#"
         function removedom(msgidx) { 
             var delarr = msgidx.split('-');
             var key = `post-${delarr[1]}-{"title"_"${delarr[2]}"`;
-            console.log(key);
-            console.log(msgidx);
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uridel + '/' + key, true);
             xhr.send(msgidx);
@@ -120,7 +118,6 @@ pub static INDEX_HTML: &str = r#"
             var key = titlediv.textContent;
             var value = postdiv.textContent;
             var kv = `post-${updarr[1]}-{"title"_"${key}"|"post"_"${value}"}`;
-            console.log(kv);
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uricreate + '/' + kv, true);
             xhr.send(kv);
@@ -135,14 +132,12 @@ pub static INDEX_HTML: &str = r#"
                 var msgstr = data.split(',')[i];
                 var msgidx = msgstr.split('::')[0];
                 if(i !== 0) {
-                    console.log(pmsg);
-                    var pmsg = msgstr.split('-');
+                   var pmsg = msgstr.split('-');
                     var pjmsg = pmsg[2].replaceAll('|',',').replaceAll('_',':');
                     var pobj = JSON.parse(pjmsg);
                     pobj.idx = pmsg[0]+"-"+pmsg[1];
                     var btnidx = pobj.idx+"-"+pobj.title;
-                    console.log(pobj);
-                    line.innerHTML += 
+                   line.innerHTML += 
                     "<div id='"+pobj.idx+"' class='divstyle'>"+
                     pobj.title+
                     "</div>"+
@@ -222,7 +217,6 @@ lazy_static! {
     pub static ref ALL_POSTS: Vec<String> = all_posts();
 }
 
-// TODO: make these tuples?
 fn all_posts() -> Vec<String> {
     
     let mut post_names: Vec<String> = Vec::new();
