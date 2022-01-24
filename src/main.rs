@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use url::form_urlencoded::{byte_serialize, parse};
+use url::form_urlencoded::parse;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use console::Style;
@@ -69,7 +69,7 @@ async fn main() {
     //let routes = end.or(vids).or(post_api)
     let dbinstance = warp::any().map(move || dbinstance.clone());
 
-    let get_posts = 
+    let posts_chat = 
      warp::path("chat")
     .and(warp::post())
     .and(warp::path::param::<usize>())
@@ -82,9 +82,8 @@ async fn main() {
             }),
         )
     .and(users.clone())
-    .and(dbinstance.clone())
-    .map(|my_id, msg, users, dbinstance| { 
-        get_posts_render(my_id, msg, &users, dbinstance);
+    .map(|my_id, msg, users| { 
+        chat(my_id, msg, &users);
     warp::reply()});
 
     let posts_status = 
@@ -158,7 +157,7 @@ async fn main() {
     let routes = index
     .or(chat_recv)
     .or(vid)
-    .or(get_posts)
+    .or(posts_chat)
     .or(posts_status)
     .or(post_delete)
     .or(post_create);
@@ -169,30 +168,14 @@ async fn main() {
     drop(_guard);
 }
 
-fn get_posts_render(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let mut new_msg = format!("User#{}: {},", my_id, msg);
+fn chat(my_id: usize, msg: String, users: &Users)  {
+    let new_msg = format!("User#{}: {},", my_id, msg);
     
-    //param example
-    let vecstr = futures::executor::block_on(models::fdb_model::run_query_posts(&dbinstance, msg));
-
-    for fdbstr in vecstr {
-        let compstr = format!("{} ,", &fdbstr);
-        new_msg.push_str(&compstr);
-    }
-    
-    // New message from this user, send it to everyone else (except same uid)...
-    //
-    // We use `retain` instead of a for loop so that we can reap any user that
-    // appears to have disconnected.
     users.lock().unwrap().retain(|uid, tx| {
-        /*
-        if my_id == *uid {
-            // don't send to same user, but do retain
-            true
-        } else {*/
-            // If not `is_ok`, the SSE stream is gone, and so don't retain
-            tx.send(Message::Reply(new_msg.clone())).is_ok()
-        //}
+        
+        println!("User {} sent {}", uid, new_msg.clone());
+        tx.send(Message::Reply(new_msg.clone())).is_ok()
+        
     });
 }
 
@@ -207,19 +190,11 @@ fn get_posts_status(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fd
         new_msg.push_str(&compstr);
     }
 
-    // New message from this user, send it to everyone else (except same uid)...
-    //
-    // We use `retain` instead of a for loop so that we can reap any user that
-    // appears to have disconnected.
     users.lock().unwrap().retain(|uid, tx| {
-        /*
-        if my_id == *uid {
-            // don't send to same user, but do retain
-            true
-        } else {*/
-            // If not `is_ok`, the SSE stream is gone, and so don't retain
+            
+            println!("User {} sent {}", uid, new_msg.clone());
             tx.send(Message::Reply(new_msg.clone())).is_ok()
-        //}
+        
     });
 }
 
@@ -235,19 +210,12 @@ fn delete_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::D
     let delstr = futures::executor::block_on(models::fdb_model::delete_post_async(&dbinstance, decoded));
     
     new_msg.push_str(&delstr.unwrap());
-    // New message from this user, send it to everyone else (except same uid)...
-    //
-    // We use `retain` instead of a for loop so that we can reap any user that
-    // appears to have disconnected.
+  
     users.lock().unwrap().retain(|uid, tx| {
-        /*
-        if my_id == *uid {
-            // don't send to same user, but do retain
-            true
-        } else {*/
-            // If not `is_ok`, the SSE stream is gone, and so don't retain
+            
+            println!("User {} sent {}", uid, new_msg.clone());
             tx.send(Message::Reply(new_msg.clone())).is_ok()
-        //}
+        
     });
 }
 
@@ -271,48 +239,13 @@ fn create_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::D
     
     new_msg.push_str(&createstr.unwrap());
 
-    // New message from this user, send it to everyone else (except same uid)...
-    //
-    // We use `retain` instead of a for loop so that we can reap any user that
-    // appears to have disconnected.
     users.lock().unwrap().retain(|uid, tx| {
-        /*
-        if my_id == *uid {
-            // don't send to same user, but do retain
-            true
-        } else {*/
-            // If not `is_ok`, the SSE stream is gone, and so don't retain
+        
+            println!("User {} sent {}", uid, new_msg.clone());
             tx.send(Message::Reply(new_msg.clone())).is_ok()
-        //}
+        
     });
 }
-
-fn get_posts_commit(my_id: usize, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let mut new_msg = format!("User::User#{}: {},", my_id, msg);
-    
-    let vecstr = futures::executor::block_on(models::fdb_model::commit_posts_query(&dbinstance));
-    
-    for fdbstr in vecstr {
-        let compstr = format!("{} ,", &fdbstr);
-        new_msg.push_str(&compstr);
-    }
-
-    // New message from this user, send it to everyone else (except same uid)...
-    //
-    // We use `retain` instead of a for loop so that we can reap any user that
-    // appears to have disconnected.
-    users.lock().unwrap().retain(|uid, tx| {
-        /*
-        if my_id == *uid {
-            // don't send to same user, but do retain
-            true
-        } else {*/
-            // If not `is_ok`, the SSE stream is gone, and so don't retain
-            tx.send(Message::Reply(new_msg.clone())).is_ok()
-        //}
-    });
-}
-
 
 fn user_connected(users: Users) -> impl Stream<Item = Result<Event, warp::Error>> + Send + 'static {
     // Use a counter to assign a new unique ID for this user.
