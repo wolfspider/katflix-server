@@ -81,6 +81,7 @@ pub static INDEX_HTML: &str = r#"
         border-width:1px;
         font-size: 15px;
         background-color: #cbe2f7;
+        width: 33%;
     }
     </style>
     <body>
@@ -119,6 +120,27 @@ pub static INDEX_HTML: &str = r#"
             xhr.open("POST", uridel + '/' + key, true);
             xhr.send(msgidx);
         }
+        function updatedom(msgidx) { 
+            var updarr = msgidx.split('-');
+            var titlediv = document.getElementById(updarr[0]+"-"+updarr[1]);
+            var postdiv = document.getElementById(msgidx);
+            titlediv.contentEditable = true;
+            postdiv.contentEditable = true;
+        }
+        function savedom(msgidx) { 
+            var updarr = msgidx.split('-');
+            var titlediv = document.getElementById(updarr[0]+"-"+updarr[1]);
+            var postdiv = document.getElementById(msgidx);
+            var key = titlediv.textContent;
+            var value = postdiv.textContent;
+            var kv = `post-${updarr[1]}-{"title"_"${key}"|"post"_"${value}"}`;
+            console.log(kv);
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", uricreate + '/' + kv, true);
+            xhr.send(kv);
+            text.value = '';
+            message('<You>: ' + msg);
+        }
         function message(data) {
             var line = document.createElement('p');
             postslength = data.split(',').length - 1;
@@ -132,15 +154,18 @@ pub static INDEX_HTML: &str = r#"
                     var pjmsg = pmsg[2].replaceAll('|',',').replaceAll('_',':');
                     var pobj = JSON.parse(pjmsg);
                     pobj.idx = pmsg[0]+"-"+pmsg[1];
-                    var delidx = pobj.idx+"-"+pobj.title;
+                    var btnidx = pobj.idx+"-"+pobj.title;
                     console.log(pobj);
                     line.innerHTML += 
                     "<div id='"+pobj.idx+"' class='divstyle'>"+
                     pobj.title+
-                    "<div class='poststyle'>"+
+                    "</div>"+
+                    "<div id='"+btnidx+"' class='poststyle'>"+
                     pobj.post+
-                    "<div><button onclick='removedom(\""+delidx+"\")'>Delete</button></div>"+
-                    "</div></div>";
+                    "</div>"+
+                    "<div><button onclick='removedom(\""+btnidx+"\")'>Delete</button>"+
+                    "<button onclick='updatedom(\""+btnidx+"\")'>Update</button>"+
+                    "<button onclick='savedom(\""+btnidx+"\")'>Save</button></div>";
                 }
                 else {
                     //var msgstrtrim = msgstr.split('::')[1];
