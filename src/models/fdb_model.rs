@@ -122,7 +122,6 @@ pub static INDEX_HTML: &str = r#"
             xhr.open("POST", uricreate + '/' + kv, true);
             xhr.send(kv);
             text.value = '';
-            message('<You>: ' + msg);
         }
         function message(data) {
             var line = document.createElement('p');
@@ -179,12 +178,10 @@ pub static INDEX_HTML: &str = r#"
             var value = inval.value;
             var idx = zeroPad(postslength, 3);
             var kv = `post-${idx}-{"title"_"${key}"|"post"_"${value}"}`;
-            console.log(kv);
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uricreate + '/' + kv, true);
             xhr.send(kv);
             text.value = '';
-            message('<You>: ' + msg);
         };
         send.onclick = function() {
             var msg = text.value;

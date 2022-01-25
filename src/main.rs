@@ -220,7 +220,7 @@ fn delete_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::D
 }
 
 fn create_post(my_id: String, msg: String, users: &Users, dbinstance: Arc<fdb::Database>)  {
-    let mut new_msg = format!("User::User#{}: {},", my_id, msg);
+    let mut new_msg = format!("User Created Post::User#{}: {},", my_id, msg);
     
     let key = my_id.clone();
 
