@@ -88,6 +88,7 @@ pub static INDEX_HTML: &str = r#"
         <button type="button" id="send">Send</button>
         <button type="button" id="status">Get</button>
         </div>
+        <script src="videos/video.js" type="text/javascript"></script>
         <script type="text/javascript">
         var uri = 'http://' + location.host + '/chat';
         var uristat = 'http://' + location.host + '/status';
@@ -106,17 +107,23 @@ pub static INDEX_HTML: &str = r#"
         }
         function updatedom(msgidx) { 
             var updarr = msgidx.split('-');
-            var titlediv = document.getElementById(updarr[0]+"-"+updarr[1]);
-            var postdiv = document.getElementById(msgidx);
-            titlediv.contentEditable = true;
-            postdiv.contentEditable = true;
+            var titlediv = document.getElementsByClassName(updarr[0]+"-"+updarr[1]);
+            var postdiv = document.getElementsByClassName(msgidx);
+            for(var i = 0; i <= titlediv.length - 1; i++)
+            {
+                titlediv[i].contentEditable = true;
+            }
+            for(var j = 0; j <= postdiv.length - 1; j++)
+            {
+                postdiv[j].contentEditable = true;
+            }
         }
         function savedom(msgidx) { 
             var updarr = msgidx.split('-');
-            var titlediv = document.getElementById(updarr[0]+"-"+updarr[1]);
-            var postdiv = document.getElementById(msgidx);
-            var key = titlediv.textContent;
-            var value = postdiv.textContent;
+            var titlediv = document.getElementsByClassName(updarr[0]+"-"+updarr[1]);
+            var postdiv = document.getElementsByClassName(msgidx);
+            var key = titlediv[titlediv.length - 1].textContent;
+            var value = postdiv[postdiv.length - 1].textContent;
             var kv = `post-${updarr[1]}-{"title"_"${key}"|"post"_"${value}"}`;
             var xhr = new XMLHttpRequest();
             xhr.open("POST", uricreate + '/' + kv, true);
@@ -137,10 +144,10 @@ pub static INDEX_HTML: &str = r#"
                     pobj.idx = pmsg[0]+"-"+pmsg[1];
                     var btnidx = pobj.idx+"-"+pobj.title;
                    line.innerHTML += 
-                    "<div id='"+pobj.idx+"' class='divstyle'>"+
+                    "<div id='"+pobj.idx+"' class='"+pobj.idx+"'>"+
                     pobj.title+
                     "</div>"+
-                    "<div id='"+btnidx+"' class='poststyle'>"+
+                    "<div id='"+btnidx+"' class='"+btnidx+"'>"+
                     pobj.post+
                     "</div>"+
                     "<div><button onclick='removedom(\""+btnidx+"\")'>Delete</button>"+
