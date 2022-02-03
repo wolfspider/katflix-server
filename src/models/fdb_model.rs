@@ -54,21 +54,12 @@ pub static INDEX_HTML: &str = r#"
         <title>Warp SSE FDB Example</title>
     </head>
     <style>
-    .divstyle
-    {
-        border-style:solid;
-        border-color:black;
-        border-width:1px;
-        font-size: 20px;
-        width: 33%;
-    }
-    .poststyle
+    div
     {
         border-style:solid;
         border-color:black;
         border-width:1px;
         font-size: 15px;
-        background-color: #cbe2f7;
         width: 33%;
     }
     </style>
