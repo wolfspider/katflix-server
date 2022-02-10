@@ -35,9 +35,9 @@ const POSTS: &[&str] = &[
 ];
 
 const BODIES: &[&str] = &[
-    r#""post"_"welcome to the forum"}"#,
-    r#""post"_"common threads"}"#,
-    r#""post"_"how do I do this"}"#,
+    r#""post"_"welcome to the forum"|"img"_"kat1.jpg"}"#,
+    r#""post"_"common threads"|"img"_"kat2.jpg"}"#,
+    r#""post"_"how do I do this"|"img"_"kat3.jpg"}"#,
     r#""post"_"intro code for beginners"}"#,
     r#""post"_"know enough beyond beginner"}"#,
     r#""post"_"I am sharing tips"}"#,
@@ -60,7 +60,7 @@ pub static INDEX_HTML: &str = r#"
         border-color:black;
         border-width:1px;
         font-size: 15px;
-        width: 33%;
+        width: 40%;
     }
     </style>
     <body>

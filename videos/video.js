@@ -4,6 +4,7 @@ var uridel = 'http://' + location.host + '/delete';
 var uricommit = 'http://' + location.host + '/commit';
 var uricreate = 'http://' + location.host + '/create';
 var postslength = 0;
+var base = "videos";
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 var sse = new EventSource(uri);
 function removedom(msgidx) {
@@ -46,9 +47,25 @@ function message(data) {
             var pmsg = msgstr.split('-');
             var pjmsg = pmsg[2].replaceAll('|', ',').replaceAll('_', ':');
             var pobj = JSON.parse(pjmsg);
+            console.log(pobj);
             pobj.idx = pmsg[0] + "-" + pmsg[1];
             var btnidx = pobj.idx + "-" + pobj.title;
-            line.innerHTML +=
+            if(pobj.img) {
+                line.innerHTML +=
+                "<div id='" + pobj.idx + "' class='" + pobj.idx + "'>" +
+                pobj.title +
+                "<img src='" + base + "/" + pobj.img + "'/>" +
+                "</div>" +
+                "<div id='" + btnidx + "' class='" + btnidx + "'>" +
+                pobj.post +
+                "</div>" +
+                "<div><button onclick='removedom(\"" + btnidx + "\")'>Delete</button>" +
+                "<button onclick='updatedom(\"" + btnidx + "\")'>Update</button>" +
+                "<button onclick='savedom(\"" + btnidx + "\")'>Save</button></div>";
+
+            }
+            else { 
+                line.innerHTML +=
                 "<div id='" + pobj.idx + "' class='" + pobj.idx + "'>" +
                 pobj.title +
                 "</div>" +
@@ -58,6 +75,7 @@ function message(data) {
                 "<div><button onclick='removedom(\"" + btnidx + "\")'>Delete</button>" +
                 "<button onclick='updatedom(\"" + btnidx + "\")'>Update</button>" +
                 "<button onclick='savedom(\"" + btnidx + "\")'>Save</button></div>";
+            }
         }
         else {
             //var msgstrtrim = msgstr.split('::')[1];
